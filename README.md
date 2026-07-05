@@ -17,7 +17,7 @@ but built 100% from scratch with original code and art.
 | Way | How | Best for |
 |---|---|---|
 | 🌐 **Play in the browser** | Open **https://notquacker.github.io/a-little-tidier/** | Phones, tablets, any computer — always the newest version |
-| 🖥️ **Windows app** | Get `A Little Tidier 1.0.0.exe` from Xayvion (or the Releases page of this repo) | Playing like a real desktop game |
+| 🖥️ **Windows app** | **[⬇ Download the exe](https://github.com/Notquacker/a-little-tidier/releases/latest)** (under *Assets*) | Playing like a real desktop game |
 | 🛠️ **From source** | See [Building it yourself](#building-it-yourself) below | Developers / the curious |
 
 ## 2 · How to install
