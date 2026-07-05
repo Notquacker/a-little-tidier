@@ -11,6 +11,7 @@
 // ============================================================
 
 const { app, BrowserWindow } = require('electron');
+const path = require('path');
 
 // ============================================================
 // LIVE UPDATES ✏️
@@ -32,6 +33,7 @@ function createWindow () {
     title: 'A Little Tidier ♥',
     autoHideMenuBar: true,          // hides the File/Edit/View menu bar (Alt shows it)
     backgroundColor: '#f7f0e2',     // paper colour while the page loads (no white flash)
+    icon: path.join(__dirname, 'build', 'icon.png'),   // window / taskbar icon
   });
 
   if (REMOTE_URL) {

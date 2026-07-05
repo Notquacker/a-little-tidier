@@ -15,10 +15,12 @@
     "productName": "A Little Tidier",
     "files": [
       "main.js",
-      "index.html"
+      "index.html",
+      "build/icon.png"
     ],
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "build/icon.ico"
     }
   },
   "devDependencies": {
