@@ -1,0 +1,28 @@
+{
+  "name": "a-little-tidier",
+  "productName": "A Little Tidier",
+  "version": "1.0.0",
+  "description": "A cozy tidying game, made with love for Gail (and Archy, Ice & Chip)",
+  "main": "main.js",
+  "author": "Xayvion",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.xayvion.alittletidier",
+    "productName": "A Little Tidier",
+    "files": [
+      "main.js",
+      "index.html"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3"
+  }
+}

@@ -1,0 +1,3 @@
+# machine-generated — never commit these
+node_modules/
+dist/
