@@ -1,0 +1,16 @@
+{
+  "name": "A Little Tidier",
+  "short_name": "Tidier",
+  "description": "A cozy tidying game for Gail, starring Archy, Ice & Chip",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f0e2",
+  "theme_color": "#f7f0e2",
+  "icons": [
+    {
+      "src": "build/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

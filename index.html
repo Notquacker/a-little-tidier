@@ -6,6 +6,8 @@
 <title>A Little Tidier ♥</title>
 <link rel="icon" type="image/png" href="build/icon.png">
 <link rel="apple-touch-icon" href="build/icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f7f0e2">
 <style>
   :root{
     --paper:#f7f0e2;
@@ -68,7 +70,7 @@
 
   /* ---------- stage ---------- */
   #stageWrap{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
-  #stage{ position:relative; width:900px; height:560px; touch-action:none; transform-origin:center center; }
+  #stage{ position:relative; width:900px; height:560px; flex:none; touch-action:none; transform-origin:center center; }
 
   .hint{ opacity:0; transition:opacity .35s; pointer-events:none; }
   #stage.showHints .hint{ opacity:.55; }
