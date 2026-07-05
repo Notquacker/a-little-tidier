@@ -21,7 +21,7 @@ const { app, BrowserWindow } = require('electron');
 // baked into the exe when she has no internet.
 // Example: 'https://YOURNAME.github.io/a-little-tidier/'
 // ============================================================
-const REMOTE_URL = '';
+const REMOTE_URL = 'https://notquacker.github.io/a-little-tidier/';
 
 function createWindow () {
   const win = new BrowserWindow({
