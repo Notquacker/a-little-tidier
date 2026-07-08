@@ -48,6 +48,9 @@ Finish all of them and there might be a message waiting at the end… 💌
 | **?** button (top right) | Shows a ghost hint of the solution for a few seconds |
 | Click **Archy, Ice or Chip** | Awoooo! 🐺 (they wag and blink on their own) |
 
+There's a **level menu** (finished levels get a pink heart — progress is saved on your device),
+and a **pause button** (⏸) with restart / back-to-menu.
+
 **The levels**
 
 1. **Straighten Up** — three crooked picture frames; make them hang straight
@@ -57,7 +60,14 @@ Finish all of them and there might be a message waiting at the end… 💌
 5. **Rainbow Shelf** — sort the books into rainbow order
 6. **Treat Time** — sort the dog biscuits from smallest to biggest, one per hungry baby
 7. **Drawer Order** — put every piece of cutlery on its matching outline
-8. **Love Letters** — spell a very important name ♥
+8. **Build a Bouquet** — drop the flowers into the vase 💐
+9. **Closet Cleanup** — hang, fold and tuck everything away 👗
+10. **Puppy Puzzle** — rebuild the picture of the pup 🐶
+11. **Potion Time** — pour the colours into the cauldron in recipe order 🧪
+12. **Nail Salon** — paint every nail pink 💅
+13. **Love Letters** — spell a very important name ♥
+
+*(Levels 8–12 were invented by Gail herself.)*
 
 ## 4 · How it's made (the nerdy part)
 

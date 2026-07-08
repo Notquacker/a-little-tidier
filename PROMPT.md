@@ -28,6 +28,12 @@ sprinkled with hearts and a dedication to her.
 - **Hint button (?)**: shows dashed ghost outlines / guide lines of the solution for ~2.5 seconds.
 - All sound is generated with WebAudio (no audio files).
 
+## Screens & progress
+- **Title screen** → "keep tidying" (continues at the first unfinished level) + "levels".
+- **Level menu**: card grid of every level; finished ones get a green tint + pink heart.
+  Progress is saved in localStorage, so it survives closing the game.
+- **Pause button (⏸, top-left)** during play: resume / restart level / back to the menu.
+
 ## Levels (in order)
 1. **Straighten Up** — three crooked picture frames on the wall; drag sideways to rotate each one upright.
 2. **Hang Together** — three frames at different heights; drag them up/down until they hang on one line.
@@ -36,8 +42,13 @@ sprinkled with hearts and a dedication to her.
 5. **Rainbow Shelf** — six books; drag to sort them in rainbow colour order.
 6. **Treat Time** — five dog biscuits; sort them from smallest to biggest for the pack.
 7. **Drawer Order** — scattered cutlery; drop each piece onto its matching outline in the drawer.
-8. **Love Letters** — shuffled letter tiles; arrange them to spell G-A-I-L.
-9. **Ending** — full-screen dedication: big heart, falling hearts, her name + a personal message, signed by the pack.
+8. **Build a Bouquet** *(Gail's idea)* — drop five flowers into the vase; they fan into a bouquet.
+9. **Closet Cleanup** *(Gail's idea)* — hang the shirt & dress, fold the jeans onto the shelf, tuck the necklace & ring into the jewelry tray.
+10. **Puppy Puzzle** *(Gail's idea)* — rebuild the 3×3 picture of a husky pup from scattered tiles.
+11. **Potion Time** *(Gail's idea)* — pour the coloured bottles into the cauldron in recipe-card order; wrong ones shake and bounce back.
+12. **Nail Salon** *(Gail's idea)* — hold the polish brush over each nail until all five are painted pink.
+13. **Love Letters** — shuffled letter tiles; arrange them to spell G-A-I-L.
+14. **Ending** — full-screen dedication: big heart, falling hearts, her name + a personal message, signed by the pack.
 
 ## Personalization (easy to edit, top of the file)
 - `CONFIG.herName` — Gail (used on the title screen, the Love Letters level, the ending).

@@ -114,6 +114,52 @@
   }
   #banner.show{ transform:translate(-50%,-50%) scale(1) rotate(-2deg); }
 
+  /* ---------- pause ---------- */
+  #pauseBtn{
+    position:fixed; top:12px; left:14px; z-index:6;
+    width:44px; height:44px; border-radius:50%;
+    border:2.5px solid var(--ink); background:var(--card); color:var(--ink);
+    font-family:inherit; font-size:16px; cursor:pointer;
+    box-shadow:2px 3px 0 rgba(92,74,61,.25);
+  }
+  #pauseBtn:active{ transform:translateY(2px); box-shadow:none; }
+  #pauseBtn.hidden{ display:none; }
+  #pauseOverlay{
+    position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+    background:rgba(247,240,226,.82); backdrop-filter:blur(3px);
+  }
+  #pauseOverlay.hidden{ display:none; }
+  .pausePanel{
+    background:var(--card); border:3px solid var(--ink); border-radius:22px;
+    padding:26px 42px; text-align:center; display:flex; flex-direction:column; gap:13px;
+    box-shadow:4px 6px 0 rgba(92,74,61,.2);
+  }
+  .pausePanel .btn{ font-size:20px; padding:8px 26px; }
+
+  /* ---------- level menu ---------- */
+  .menuwrap{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; gap:13px; padding-top:46px; }
+  .menutitle{ font-size:34px; text-shadow:2px 3px 0 rgba(226,190,148,.5); }
+  .lvlgrid{ display:grid; grid-template-columns:repeat(4, 186px); gap:13px; }
+  .lvlcard{
+    position:relative; height:84px; border:3px solid var(--ink); border-radius:14px;
+    background:linear-gradient(180deg,#fffdf6,#f8eed8); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    box-shadow:2px 3px 0 rgba(92,74,61,.2); transition:transform .12s;
+    font-family:inherit; color:var(--ink);
+  }
+  .lvlcard:hover{ transform:translateY(-3px); }
+  .lvlcard .num{ font-size:12.5px; color:var(--ink-soft); line-height:1; }
+  .lvlcard .nm{ font-size:16.5px; line-height:1.15; text-align:center; padding:0 6px; }
+  .lvlcard .doneheart{ position:absolute; top:-11px; right:-9px; font-size:24px; color:var(--pink); }
+  .lvlcard.iscomplete{ background:linear-gradient(180deg,#f4f9ef,#e4f0dd); }
+
+  /* misc for the new levels */
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+  .shake{ animation:shake .3s ease 2; }
+  .bubble{ position:absolute; border-radius:50%; pointer-events:none; opacity:.85; animation:bubbleUp 1.4s ease-in forwards; }
+  @keyframes bubbleUp{ to{ transform:translateY(-70px); opacity:0; } }
+  .noanim .tail, .noanim .eye{ animation:none; }
+
   /* ---------- sparkles & hearts ---------- */
   .spark{
     position:fixed; z-index:30; pointer-events:none; font-size:20px;
@@ -173,6 +219,15 @@
   <div id="dots"></div>
 </div>
 <button id="hintBtn" class="hidden" title="hint">?</button>
+<button id="pauseBtn" class="hidden" title="pause">⏸</button>
+<div id="pauseOverlay" class="hidden">
+  <div class="pausePanel">
+    <div style="font-size:26px;">paused ♥</div>
+    <button class="btn" id="resumeBtn">resume ▶</button>
+    <button class="btn" id="restartBtn">restart level ↺</button>
+    <button class="btn" id="menuBtn">level menu ♥</button>
+  </div>
+</div>
 
 <div id="stageWrap"><div id="stage"></div></div>
 <div id="banner">Just right ♥</div>
@@ -202,6 +257,8 @@ const lvlT    = document.getElementById('lvlTitle');
 const dotsEl  = document.getElementById('dots');
 const hintBtn = document.getElementById('hintBtn');
 const banner  = document.getElementById('banner');
+const pauseBtn     = document.getElementById('pauseBtn');
+const pauseOverlay = document.getElementById('pauseOverlay');
 
 const state = { busy:false, level:0 };
 let SCALE = 1;
@@ -504,10 +561,10 @@ const teaspoonSVG = () => { const g = uid('ck'); return `
     <ellipse cx="9.5" cy="13" rx="3" ry="6" fill="#fff" opacity=".5" transform="rotate(-14 9.5 13)"/>
   </svg>`; };
 
-const huskySVG = (fur, collar) => {
+/* the husky drawing itself (viewBox space 0 0 120 122) — reused by the puzzle */
+const huskyGuts = (fur, collar) => {
   const g = uid('hk'), card = '#fffdf6', outline = 'rgba(92,74,61,.16)';
   return `
-  <svg width="96" height="98" viewBox="0 0 120 122" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="${g}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="122">
       <stop offset="0" stop-color="${shade(fur,1.12)}"/><stop offset="1" stop-color="${shade(fur,.87)}"/></linearGradient></defs>
 
@@ -563,9 +620,131 @@ const huskySVG = (fur, collar) => {
     <path d="M52 60 Q60 66 68 60" stroke="#4a3d33" stroke-width="2.2" fill="none" stroke-linecap="round"/>
     <path d="M56 61.5 Q60 69 64 61.5 Z" fill="#e8848f"/>
     <ellipse cx="38" cy="50" rx="4" ry="2.4" fill="#eba3ad" opacity=".45"/>
-    <ellipse cx="82" cy="50" rx="4" ry="2.4" fill="#eba3ad" opacity=".45"/>
+    <ellipse cx="82" cy="50" rx="4" ry="2.4" fill="#eba3ad" opacity=".45"/>`;
+};
+const huskySVG = (fur, collar) => `
+  <svg width="96" height="98" viewBox="0 0 120 122" xmlns="http://www.w3.org/2000/svg">${huskyGuts(fur, collar)}
+  </svg>`;
+
+/* ---- flowers & vase (Build a Bouquet) --------------------------------- */
+const flowerSVG = (petal, h) => {
+  const w = 72, cx = 36, cy = 30, r = 15, g = uid('fw');
+  let petals = '';
+  for(let i = 0; i < 6; i++){
+    const a = i/6*Math.PI*2 - Math.PI/2, px = cx + Math.cos(a)*r*1.5, py = cy + Math.sin(a)*r*1.5;
+    petals += `<ellipse cx="${px}" cy="${py}" rx="${r*0.72}" ry="${r*0.95}" fill="url(#${g})"
+               transform="rotate(${a*180/Math.PI + 90} ${px} ${py})"/>`;
+  }
+  return `
+  <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${shade(petal,1.12)}"/><stop offset="1" stop-color="${shade(petal,.85)}"/></linearGradient></defs>
+    <path d="M ${cx} ${cy+r} C ${cx-7} ${cy+r+40} ${cx+7} ${h-46} ${cx} ${h-4}"
+          stroke="#8fae85" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="${cx-11}" cy="${h-40}" rx="12" ry="5.5" fill="#a9c69e" transform="rotate(-32 ${cx-11} ${h-40})"/>
+    ${petals}
+    <circle cx="${cx}" cy="${cy}" r="${r*0.85}" fill="#f3d98b"/>
+    <circle cx="${cx-4}" cy="${cy-4}" r="${r*0.28}" fill="#fbeebc"/>
   </svg>`;
 };
+const vaseSVG = () => {
+  const g = uid('vs');
+  return `
+  <svg width="170" height="140" viewBox="0 0 170 140" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c3d7ea"/><stop offset=".5" stop-color="#a9c3e8"/>
+      <stop offset="1" stop-color="#8aa8d4"/></linearGradient></defs>
+    <path d="M45 10 L125 10 L110 44 Q142 72 128 112 Q121 134 85 134 Q49 134 42 112 Q28 72 60 44 Z"
+          fill="url(#${g})" stroke="rgba(92,74,61,.3)" stroke-width="2.5"/>
+    <ellipse cx="85" cy="10" rx="41" ry="7" fill="#8aa8d4"/>
+    <ellipse cx="85" cy="9" rx="34" ry="5" fill="#6f8fbd"/>
+    <path d="M52 52 Q42 80 50 106" stroke="#fff" stroke-width="5" opacity=".4" fill="none" stroke-linecap="round"/>
+  </svg>`;
+};
+
+/* ---- clothes & jewelry (Closet Cleanup) -------------------------------- */
+const shirtSVG = c => `
+  <svg width="84" height="74" viewBox="0 0 84 74" xmlns="http://www.w3.org/2000/svg">
+    <path d="M28 5 L10 15 L3 33 L17 41 L21 33 L21 69 L63 69 L63 33 L67 41 L81 33 L74 15 L56 5 Q42 17 28 5 Z"
+          fill="${c}" stroke="${shade(c,.6)}" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M28 5 Q42 17 56 5" fill="none" stroke="${shade(c,.6)}" stroke-width="2.5"/>
+    ${heartPath(42, 44, 15, shade(c,.75))}
+  </svg>`;
+const dressSVG = c => `
+  <svg width="76" height="100" viewBox="0 0 76 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M27 3 L30 16 L46 16 L49 3" fill="none" stroke="${shade(c,.6)}" stroke-width="2.5"/>
+    <rect x="26" y="14" width="24" height="26" rx="9" fill="${c}" stroke="${shade(c,.6)}" stroke-width="2.5"/>
+    <path d="M26 36 L50 36 L66 92 Q38 103 10 92 Z" fill="${c}" stroke="${shade(c,.6)}" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M26 40 Q38 46 50 40" stroke="${shade(c,.7)}" stroke-width="2" fill="none"/>
+  </svg>`;
+const pantsSVG = () => `
+  <svg width="84" height="46" viewBox="0 0 84 46" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="78" height="17" rx="7" fill="#8fa8c8" stroke="#6d87a9" stroke-width="2"/>
+    <rect x="3" y="24" width="78" height="17" rx="7" fill="#a9c3e8" stroke="#7d95b8" stroke-width="2"/>
+    <line x1="12" y1="11.5" x2="72" y2="11.5" stroke="#e8eef7" stroke-width="1.6" stroke-dasharray="4 3"/>
+    <line x1="12" y1="32.5" x2="72" y2="32.5" stroke="#7d95b8" stroke-width="1.6" stroke-dasharray="4 3"/>
+  </svg>`;
+const necklaceSVG = () => `
+  <svg width="64" height="76" viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 5 Q32 52 56 5" fill="none" stroke="#d9b45a" stroke-width="3" stroke-dasharray="2.5 2.5"/>
+    ${heartPath(32, 56, 18, '#e8a9b0')}
+  </svg>`;
+const ringSVG = () => `
+  <svg width="44" height="52" viewBox="0 0 44 52" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="22,3 31,12 22,22 13,12" fill="#cfe6f0" stroke="#9fc4d8" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="22" cy="34" r="13" fill="none" stroke="#d9b45a" stroke-width="5"/>
+  </svg>`;
+
+/* ---- bottles & cauldron (Potion Time) ---------------------------------- */
+const bottleSVG = c => `
+  <svg width="46" height="88" viewBox="0 0 46 88" xmlns="http://www.w3.org/2000/svg">
+    <rect x="17" y="2" width="12" height="11" rx="3" fill="#c59a6b" stroke="#8f6a4a" stroke-width="1.5"/>
+    <rect x="15" y="12" width="16" height="13" fill="rgba(220,235,238,.75)" stroke="#9fb4ba" stroke-width="2"/>
+    <path d="M15 24 Q6 31 6 45 L6 73 Q6 84 17 84 L29 84 Q40 84 40 73 L40 45 Q40 31 31 24 Z"
+          fill="rgba(226,240,242,.6)" stroke="#9fb4ba" stroke-width="2"/>
+    <path d="M7.5 50 L38.5 50 L38.5 73 Q38.5 82.5 29 82.5 L17 82.5 Q7.5 82.5 7.5 73 Z" fill="${c}"/>
+    <path d="M12 34 Q10 50 11 70" stroke="#fff" stroke-width="3.5" opacity=".55" fill="none" stroke-linecap="round"/>
+  </svg>`;
+const cauldronSVG = () => {
+  const cp = uid('cpz'), g = uid('pot');
+  return `
+  <svg width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#7b6c60"/><stop offset="1" stop-color="#51463d"/></linearGradient>
+      <clipPath id="${cp}"><path d="M30 42 Q20 92 44 121 Q68 146 100 146 Q132 146 156 121 Q180 92 170 42 Z"/></clipPath>
+    </defs>
+    <path d="M52 148 L44 158 M148 148 L156 158" stroke="#4a3f38" stroke-width="8" stroke-linecap="round"/>
+    <path d="M30 42 Q20 92 44 121 Q68 146 100 146 Q132 146 156 121 Q180 92 170 42 Z"
+          fill="url(#${g})" stroke="#3a322c" stroke-width="3"/>
+    <g clip-path="url(#${cp})">
+      <rect class="pfluid" x="20" y="150" width="160" height="120" fill="#a9c3e8" style="transition:y .7s ease, fill .7s ease;"/>
+      <ellipse class="psurf" cx="100" cy="150" rx="70" ry="8" fill="#ffffff" opacity=".25" style="transition:cy .7s ease;"/>
+    </g>
+    <ellipse cx="100" cy="40" rx="73" ry="14" fill="#4a3f38"/>
+    <ellipse cx="100" cy="38" rx="60" ry="10" fill="#332c27"/>
+  </svg>`;
+};
+
+/* ---- nail polish (Nail Salon) ------------------------------------------ */
+const NAIL_COLOR = '#e8859b';
+const polishSVG = () => `
+  <svg width="44" height="100" viewBox="0 0 44 100" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="22,2 27,12 17,12" fill="#3a3330"/>
+    <rect x="19" y="10" width="6" height="22" rx="3" fill="#8a7666"/>
+    <rect x="12" y="30" width="20" height="18" rx="4" fill="#5c4a3d"/>
+    <rect x="6" y="48" width="32" height="48" rx="8" fill="rgba(233,242,244,.7)" stroke="#9fb4ba" stroke-width="2"/>
+    <rect x="8" y="60" width="28" height="34" rx="6" fill="${NAIL_COLOR}"/>
+    ${heartPath(22, 76, 11, '#fffdf6')}
+  </svg>`;
+
+/* ---- the puzzle picture (Puppy Puzzle) ---------------------------------- */
+const puppyPicture = () => `
+  <rect x="5" y="5" width="260" height="260" rx="20" fill="#e3ecf7"/>
+  <rect x="5" y="5" width="260" height="260" rx="20" fill="none" stroke="#b9cbe4" stroke-width="4"/>
+  ${heartPath(42, 48, 30, '#f2bcc3')}${heartPath(228, 42, 22, '#f6d4d9')}
+  ${heartPath(36, 226, 20, '#f6d4d9')}${heartPath(232, 228, 30, '#f2bcc3')}
+  <g transform="translate(63,60) scale(1.2)">${huskyGuts('#6b7683', '#e8a9b0')}</g>`;
 
 const tileSVG = (s, letter, color) => {
   const g = uid('tl');
@@ -837,68 +1016,361 @@ const levelTreats = makeSortLevel({
   }
 });
 
+/* ---- generic "drop each thing on its own outline" level --------------- */
+function makePlaceLevel({ title, decor, pieces, hintText, tol = 24, ghosts = true }){
+  return {
+    title,
+    run(onSolved){
+      decor && decor();
+      const items = pieces();
+      let locked = 0;
+      items.forEach(p => {
+        if(ghosts){
+          // grey outline showing where this piece belongs
+          const sh = document.createElement('div');
+          sh.className = 'shadowpiece';
+          sh.innerHTML = p.svg;
+          sh.style.left = (p.tx - p.w/2) + 'px';
+          sh.style.top  = (p.ty - p.h/2) + 'px';
+          stage.appendChild(sh);
+        }
+        const el = document.createElement('div');
+        el.className = 'item';
+        if(p.cls) el.classList.add(p.cls);
+        el.innerHTML = p.svg;
+        let cx = p.sx, cy = p.sy;
+        const place = () => {
+          el.style.left = (cx - p.w/2) + 'px';
+          el.style.top  = (cy - p.h/2) + 'px';
+        };
+        place();
+        stage.appendChild(el);
+
+        draggable(el, {
+          start(){ el.classList.add('drag'); p.scx = cx; p.scy = cy; },
+          move(dx, dy){
+            cx = clamp(p.scx + dx, 20, 880);
+            cy = clamp(p.scy + dy, 20, 540);
+            place();
+          },
+          end(){
+            el.classList.remove('drag');
+            if(Math.abs(cx - p.tx) < tol && Math.abs(cy - p.ty) < tol){
+              cx = p.tx; cy = p.ty; place();
+              el.classList.add('locked');
+              ding();
+              sparkAt(cx, cy, 8);
+              if(++locked === items.length) setTimeout(onSolved, 300);
+            }
+          }
+        });
+      });
+      hintText && addHintText(hintText, 450, 505, 560);
+    }
+  };
+}
+
 /* =====================================================================
    LEVEL — Drawer Order (drop each piece onto its matching outline)
    ===================================================================== */
-const levelDrawer = {
+const levelDrawer = makePlaceLevel({
   title: "Drawer Order",
-  run(onSolved){
+  hintText: "match the shapes in the drawer",
+  decor(){
     const dr = document.createElement('div');
     dr.style.cssText = 'position:absolute;left:170px;top:80px;width:560px;height:230px;'
       + 'border:9px solid #b08a5f;border-radius:18px;'
       + 'background:linear-gradient(180deg,#f8efdb,#f0e3c7);'
       + 'box-shadow:0 9px 16px rgba(92,74,61,.25), inset 0 5px 12px rgba(92,74,61,.16), inset 0 -2px 5px rgba(255,255,255,.55);';
     stage.appendChild(dr);
+  },
+  pieces: () => [
+    { svg: forkSVG(),     w:34, h:150, tx:244, ty:195, sx:640, sy:420 },
+    { svg: knifeSVG(),    w:30, h:150, tx:372, ty:195, sx:250, sy:445 },
+    { svg: spoonSVG(),    w:34, h:150, tx:500, ty:195, sx:770, sy:435 },
+    { svg: teaspoonSVG(), w:26, h:112, tx:628, ty:195, sx:420, sy:460 },
+  ],
+});
 
-    const pieces = [
-      { svg: forkSVG(),     w:34, h:150, tx:244, sx:640, sy:420 },
-      { svg: knifeSVG(),    w:30, h:150, tx:372, sx:250, sy:445 },
-      { svg: spoonSVG(),    w:34, h:150, tx:500, sx:770, sy:435 },
-      { svg: teaspoonSVG(), w:26, h:112, tx:628, sx:420, sy:460 },
+/* =====================================================================
+   LEVEL — Build a Bouquet (Gail's idea 💐)
+   ===================================================================== */
+const levelBouquet = {
+  title: "Build a Bouquet",
+  run(onSolved){
+    const slots = [{dx:0,a:0},{dx:-11,a:-14},{dx:11,a:14},{dx:-20,a:-27},{dx:20,a:27}];
+    let slotIdx = 0, locked = 0;
+    const flowers = [
+      { c:'#e8a9b0', h:190, sx:130, sy:170 },
+      { c:'#ecd28a', h:170, sx:770, sy:180 },
+      { c:'#cbb3e0', h:198, sx:200, sy:420 },
+      { c:'#a9c3e8', h:165, sx:795, sy:300 },
+      { c:'#f0c4a0', h:180, sx:585, sy:125 },
     ];
-    const ty = 195;                 // all outlines sit on one line in the drawer
-    let locked = 0;
-
-    pieces.forEach(p => {
-      // grey outline in the drawer showing where this piece belongs
-      const sh = document.createElement('div');
-      sh.className = 'shadowpiece';
-      sh.innerHTML = p.svg;
-      sh.style.left = (p.tx - p.w/2) + 'px';
-      sh.style.top  = (ty - p.h/2) + 'px';
-      stage.appendChild(sh);
-
+    flowers.forEach(f => {
       const el = document.createElement('div');
       el.className = 'item';
-      el.innerHTML = p.svg;
-      let cx = p.sx, cy = p.sy;
-      const place = () => {
-        el.style.left = (cx - p.w/2) + 'px';
-        el.style.top  = (cy - p.h/2) + 'px';
-      };
+      el.innerHTML = flowerSVG(f.c, f.h);
+      el.style.transformOrigin = `36px ${f.h - 4}px`;   // rotate around the stem's end
+      let cx = f.sx, cy = f.sy;
+      const place = () => { el.style.left = (cx - 36) + 'px'; el.style.top = (cy - f.h/2) + 'px'; };
       place();
       stage.appendChild(el);
-
       draggable(el, {
-        start(){ el.classList.add('drag'); p.scx = cx; p.scy = cy; },
-        move(dx, dy){
-          cx = clamp(p.scx + dx, 20, 880);
-          cy = clamp(p.scy + dy, 20, 540);
-          place();
-        },
+        start(){ el.classList.add('drag'); f.scx = cx; f.scy = cy; },
+        move(dx, dy){ cx = clamp(f.scx + dx, 40, 860); cy = clamp(f.scy + dy, 70, 510); place(); },
         end(){
           el.classList.remove('drag');
-          if(Math.abs(cx - p.tx) < 24 && Math.abs(cy - ty) < 24){
-            cx = p.tx; cy = ty; place();
+          const stemY = cy + f.h/2;
+          if(Math.abs(cx - 450) < 80 && stemY > 300 && stemY < 510){
+            const s = slots[slotIdx++];
+            cx = 450 + s.dx; cy = 388 - f.h/2; place();
+            el.style.transform = `rotate(${s.a}deg)`;
             el.classList.add('locked');
             ding();
-            sparkAt(cx, cy, 8);
-            if(++locked === pieces.length) setTimeout(onSolved, 300);
+            sparkAt(cx, cy - f.h*0.28, 8);
+            if(++locked === flowers.length) setTimeout(onSolved, 300);
           }
         }
       });
     });
-    addHintText("match the shapes in the drawer", 450, 500, 520);
+    // the vase, drawn over the stems so the flowers sink into it
+    const vase = document.createElement('div');
+    vase.innerHTML = vaseSVG();
+    vase.style.cssText = 'position:absolute;left:365px;top:330px;z-index:5;pointer-events:none;'
+      + 'filter:drop-shadow(3px 6px 5px rgba(92,74,61,.25));';
+    stage.appendChild(vase);
+    const zone = document.createElement('div');
+    zone.className = 'ghost hint';
+    zone.style.cssText = 'left:375px;top:318px;width:150px;height:145px;border-radius:24px;';
+    stage.appendChild(zone);
+    addHintText("drop every flower into the vase", 450, 500, 520);
+  }
+};
+
+/* =====================================================================
+   LEVEL — Closet Cleanup (Gail's idea 👗)
+   ===================================================================== */
+const levelCloset = makePlaceLevel({
+  title: "Closet Cleanup",
+  hintText: "hang, fold and tuck everything away",
+  tol: 26,
+  decor(){
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:170px;top:60px;width:560px;height:315px;'
+      + 'border:9px solid #b08a5f;border-radius:18px;'
+      + 'background:linear-gradient(180deg,#f8efdb,#efe1c4);'
+      + 'box-shadow:0 9px 16px rgba(92,74,61,.25), inset 0 5px 12px rgba(92,74,61,.16);';
+    stage.appendChild(box);
+    const rail = document.createElement('div');
+    rail.style.cssText = 'position:absolute;left:200px;top:112px;width:310px;height:6px;border-radius:3px;'
+      + 'background:linear-gradient(180deg,#c59a6b,#8f6a4a);';
+    stage.appendChild(rail);
+    addShelf(520, 715, 258);
+    const tray = document.createElement('div');
+    tray.style.cssText = 'position:absolute;left:530px;top:285px;width:180px;height:76px;border-radius:12px;'
+      + 'background:#f2d9dd;box-shadow:inset 0 3px 7px rgba(92,74,61,.22);';
+    stage.appendChild(tray);
+  },
+  pieces: () => [
+    { svg: shirtSVG('#adcaa2'), w:84, h:74,  tx:290, ty:158, sx:105, sy:462 },
+    { svg: dressSVG('#e8a9b0'), w:76, h:100, tx:430, ty:172, sx:258, sy:480 },
+    { svg: pantsSVG(),          w:84, h:46,  tx:615, ty:232, sx:420, sy:498 },
+    { svg: necklaceSVG(),       w:64, h:76,  tx:578, ty:322, sx:92,  sy:290 },
+    { svg: ringSVG(),           w:44, h:52,  tx:668, ty:324, sx:90,  sy:168 },
+  ],
+});
+
+/* =====================================================================
+   LEVEL — Puppy Puzzle (Gail's idea 🐶) — rebuild the pup picture
+   ===================================================================== */
+const levelPuzzle = (() => {
+  const pic = puppyPicture();
+  const cell = 90, gx = 450, gy = 240;   // 3×3 grid center
+  const base = [];
+  for(let r = 0; r < 3; r++) for(let c = 0; c < 3; c++){
+    base.push({
+      svg: `<svg width="${cell}" height="${cell}" viewBox="${c*90} ${r*90} 90 90" xmlns="http://www.w3.org/2000/svg">${pic}</svg>`,
+      w: cell, h: cell,
+      tx: gx + (c-1)*cell, ty: gy + (r-1)*cell,
+      cls: 'noanim',
+    });
+  }
+  return makePlaceLevel({
+    title: "Puppy Puzzle",
+    hintText: "rebuild the picture of the pup",
+    tol: 26,
+    ghosts: false,
+    decor(){
+      const ghost = document.createElement('div');
+      ghost.className = 'noanim';
+      ghost.style.cssText = `position:absolute;left:${gx-135}px;top:${gy-135}px;opacity:.2;pointer-events:none;`;
+      ghost.innerHTML = `<svg width="270" height="270" viewBox="0 0 270 270">${pic}</svg>`;
+      stage.appendChild(ghost);
+      for(let r = 0; r < 3; r++) for(let c = 0; c < 3; c++){
+        const d = document.createElement('div');
+        d.style.cssText = `position:absolute;left:${gx+(c-1)*90-45}px;top:${gy+(r-1)*90-45}px;width:90px;height:90px;`
+          + 'border:2px dashed rgba(160,140,122,.55);border-radius:6px;pointer-events:none;';
+        stage.appendChild(d);
+      }
+    },
+    pieces: () => {
+      // scattered around the grid, away from the huskies' corner
+      const SPOTS = shuffle([
+        [80,145],[80,255],[80,365],[190,460],[300,495],
+        [415,505],[520,478],[812,150],[812,262],
+      ]);
+      return base.map((p, i) => ({ ...p, sx: SPOTS[i][0], sy: SPOTS[i][1] }));
+    },
+  });
+})();
+
+/* =====================================================================
+   LEVEL — Potion Time (Gail's idea 🧪) — pour in recipe order
+   ===================================================================== */
+const levelPotion = {
+  title: "Potion Time",
+  run(onSolved){
+    const pot = document.createElement('div');
+    pot.innerHTML = cauldronSVG();
+    pot.style.cssText = 'position:absolute;left:350px;top:295px;filter:drop-shadow(3px 7px 6px rgba(92,74,61,.3));';
+    stage.appendChild(pot);
+    const fluid = pot.querySelector('.pfluid'), surf = pot.querySelector('.psurf');
+    const FLUID_Y = [150, 118, 96, 76, 58];
+    const colors = ['#a9c3e8', '#cbb3e0', '#e8a9b0', '#ecd28a'];
+    const seq = shuffle([0, 1, 2, 3]);
+
+    // recipe card
+    const rc = document.createElement('div');
+    rc.style.cssText = 'position:absolute;left:56px;top:90px;width:200px;padding:12px 16px;'
+      + 'background:var(--card);border:3px solid var(--ink);border-radius:14px;'
+      + 'box-shadow:3px 4px 0 rgba(92,74,61,.2);font-size:17px;text-align:center;';
+    rc.innerHTML = 'brew order ✨<br>' + seq.map((ci, k) =>
+      `<span style="font-size:14px;color:var(--ink-soft)">${k+1}</span>`
+      + `<span style="display:inline-block;width:17px;height:17px;border-radius:50%;background:${colors[ci]};`
+      + 'border:2px solid rgba(92,74,61,.4);margin:0 9px 0 4px;vertical-align:-3px;"></span>').join('');
+    stage.appendChild(rc);
+
+    addShelf(590, 872, 250);
+    let next = 0;
+    colors.forEach((c, idx) => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = bottleSVG(c);
+      const sx0 = 625 + idx * 70, sy0 = 206;
+      let cx = sx0, cy = sy0;
+      const place = () => { el.style.left = (cx - 23) + 'px'; el.style.top = (cy - 44) + 'px'; };
+      place();
+      stage.appendChild(el);
+      draggable(el, {
+        start(){ el.classList.add('drag'); el._sx = cx; el._sy = cy; },
+        move(dx, dy){ cx = clamp(el._sx + dx, 30, 870); cy = clamp(el._sy + dy, 60, 520); place(); },
+        end(){
+          el.classList.remove('drag');
+          const overPot = Math.abs(cx - 450) < 105 && cy > 230 && cy < 450;
+          if(overPot && seq[next] === idx){
+            next++;
+            fluid.style.y = FLUID_Y[next] + 'px';
+            fluid.style.fill = colors[idx];              // the potion takes the poured colour
+            surf.style.cy = FLUID_Y[next] + 'px';
+            el.classList.add('locked');
+            el.style.transition = 'opacity .5s, transform .5s';
+            el.style.opacity = '0';
+            el.style.transform = 'scale(.5) rotate(-40deg)';
+            ding();
+            bubbles(450, 335, colors[idx]);
+            if(next === 4){ sparkAt(450, 330, 18); setTimeout(onSolved, 700); }
+          } else {
+            if(overPot){
+              tone(150, 0, .3, 'sawtooth', .05);
+              el.classList.add('shake');
+              setTimeout(() => el.classList.remove('shake'), 700);
+            }
+            cx = sx0; cy = sy0; place();   // slide back home
+          }
+        }
+      });
+    });
+    addHintText("pour the colours into the pot in recipe order", 450, 490, 560);
+  }
+};
+
+function bubbles(x, y, color, n = 6){
+  for(let i = 0; i < n; i++){
+    const b = document.createElement('span');
+    b.className = 'bubble';
+    const s = 6 + Math.random() * 10;
+    b.style.cssText = `left:${x - 45 + Math.random()*90}px;top:${y - Math.random()*12}px;width:${s}px;height:${s}px;`
+      + `background:${color};animation-delay:${Math.random()*.3}s;`;
+    stage.appendChild(b);
+    b.addEventListener('animationend', () => b.remove());
+  }
+}
+
+/* =====================================================================
+   LEVEL — Nail Salon (Gail's idea 💅) — brush over every nail
+   ===================================================================== */
+const levelNails = {
+  title: "Nail Salon",
+  run(onSolved){
+    const HX = 255, HY = 140;                       // hand position on the stage
+    const skin = '#eec9a5', line = 'rgba(92,74,61,.3)';
+    const fingers = [
+      { x: 78,  top: 84,  w: 36 },
+      { x: 122, top: 46,  w: 40 },
+      { x: 168, top: 34,  w: 42 },
+      { x: 218, top: 48,  w: 40 },
+      { x: 266, top: 112, w: 38 },                  // the thumb-ish one
+    ];
+    let fEls = '', nEls = '';
+    const nails = [];
+    fingers.forEach(f => {
+      fEls += `<rect x="${f.x}" y="${f.top}" width="${f.w}" height="${230 - f.top}" rx="${f.w/2}"
+               fill="${skin}" stroke="${line}" stroke-width="2.5"/>`;
+      const nx = f.x + f.w/2, ny = f.top + 26, rx = f.w/2 - 8;
+      nEls += `<ellipse cx="${nx}" cy="${ny}" rx="${rx}" ry="16" fill="#f8e8dc" stroke="${line}" stroke-width="2"/>`
+            + `<ellipse class="paint" cx="${nx}" cy="${ny}" rx="${rx}" ry="16" fill="${NAIL_COLOR}" fill-opacity="0"/>`;
+      nails.push({ x: HX + nx, y: HY + ny, cov: 0, done: false });
+    });
+    const hand = document.createElement('div');
+    hand.innerHTML = `<svg width="384" height="300" viewBox="0 0 384 300" xmlns="http://www.w3.org/2000/svg">
+      ${fEls}
+      <rect x="74" y="188" width="236" height="150" rx="46" fill="${skin}" stroke="${line}" stroke-width="2.5"/>
+      ${nEls}
+    </svg>`;
+    hand.style.cssText = `position:absolute;left:${HX}px;top:${HY}px;filter:drop-shadow(3px 6px 5px rgba(92,74,61,.22));`;
+    stage.appendChild(hand);
+    const paints = hand.querySelectorAll('.paint');
+
+    let doneCount = 0;
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = polishSVG();
+    let cx = 108, cy = 420;
+    const place = () => { el.style.left = (cx - 22) + 'px'; el.style.top = (cy - 50) + 'px'; };
+    place();
+    stage.appendChild(el);
+    draggable(el, {
+      start(){ el.classList.add('drag'); el._sx = cx; el._sy = cy; },
+      move(dx, dy){
+        cx = clamp(el._sx + dx, 30, 870); cy = clamp(el._sy + dy, 60, 520); place();
+        const tipX = cx, tipY = cy - 46;             // the brush tip paints
+        nails.forEach((n, i) => {
+          if(n.done) return;
+          if(Math.abs(tipX - n.x) < 20 && Math.abs(tipY - n.y) < 24){
+            n.cov = Math.min(1, n.cov + 0.028);
+            paints[i].setAttribute('fill-opacity', n.cov.toFixed(2));
+            if(n.cov >= 1){
+              n.done = true; doneCount++;
+              ding(); sparkAt(n.x, n.y, 6);
+              if(doneCount === nails.length) setTimeout(onSolved, 400);
+            }
+          }
+        });
+      },
+      end(){ el.classList.remove('drag'); }
+    });
+    addHintText("hold the brush over each nail to paint it 💅", 450, 490, 560);
   }
 };
 
@@ -923,12 +1395,33 @@ const levelLetters = makeSortLevel({
 /* =====================================================================
    Flow: title → levels → ending
    ===================================================================== */
-const LEVELS = [levelStraighten, levelAlign, levelPencils, levelMugs, levelBooks, levelTreats, levelDrawer, levelLetters];
+const LEVELS = [
+  ['straighten', levelStraighten],
+  ['align',      levelAlign],
+  ['pencils',    levelPencils],
+  ['mugs',       levelMugs],
+  ['books',      levelBooks],
+  ['treats',     levelTreats],
+  ['drawer',     levelDrawer],
+  ['bouquet',    levelBouquet],
+  ['closet',     levelCloset],
+  ['puzzle',     levelPuzzle],
+  ['potion',     levelPotion],
+  ['nails',      levelNails],
+  ['letters',    levelLetters],
+].map(([id, l]) => (l.id = id, l));
+
+/* saved progress — survives closing the game (localStorage) */
+let DONE = new Set();
+try { DONE = new Set(JSON.parse(localStorage.getItem('tidier-done') || '[]')); } catch(e){}
+const saveDone = () => { try { localStorage.setItem('tidier-done', JSON.stringify([...DONE])); } catch(e){} };
+
 let heartsTimer = null;
 
 function clearStage(){
   stage.innerHTML = '';
   stage.classList.remove('showHints');
+  pauseOverlay.classList.add('hidden');
   if(heartsTimer){ clearInterval(heartsTimer); heartsTimer = null; }
 }
 
@@ -970,10 +1463,12 @@ function startLevel(i){
   state.level = i; state.busy = false;
   hud.classList.remove('hidden');
   hintBtn.classList.remove('hidden');
+  pauseBtn.classList.remove('hidden');
   lvlT.textContent = `${i + 1} · ${LEVELS[i].title}`;
   drawDots(i);
   LEVELS[i].run(() => {
     state.busy = true;
+    DONE.add(LEVELS[i].id); saveDone();
     fanfare();
     sparkAt(450, 260, 26);
     banner.textContent = BANNERS[i % BANNERS.length];
@@ -989,30 +1484,65 @@ function showTitle(){
   clearStage();
   hud.classList.add('hidden');
   hintBtn.classList.add('hidden');
+  pauseBtn.classList.add('hidden');
   stage.innerHTML = bunting() + `
     <div class="screen">
       <div class="bigtitle">A Little Tidier <small>(…to the left, a bit)</small></div>
       <div class="sub">a tiny tidying game, made with ♥ for ${CONFIG.herName}</div>
-      <button class="btn" id="startBtn">start tidying ✨</button>
+      <div style="display:flex; gap:14px;">
+        <button class="btn" id="startBtn">${DONE.size ? 'keep tidying ✨' : 'start tidying ✨'}</button>
+        <button class="btn" id="lvlsBtn">levels ♥</button>
+      </div>
       <div class="tiny">drag things around until they feel <i>just right</i></div>
     </div>`;
   addTwinkles(9);
-  document.getElementById('startBtn').onclick = () => startLevel(0);
+  document.getElementById('startBtn').onclick = () => {
+    const next = LEVELS.findIndex(l => !DONE.has(l.id));
+    startLevel(next === -1 ? 0 : next);
+  };
+  document.getElementById('lvlsBtn').onclick = showMenu;
+}
+
+/* level select — shows every level and which are already done */
+function showMenu(){
+  clearStage();
+  hud.classList.add('hidden');
+  hintBtn.classList.add('hidden');
+  pauseBtn.classList.add('hidden');
+  stage.innerHTML = `
+    <div class="menuwrap">
+      <div class="menutitle">choose a level ♥</div>
+      <div class="lvlgrid">${LEVELS.map((l, i) => `
+        <button class="lvlcard ${DONE.has(l.id) ? 'iscomplete' : ''}" data-i="${i}">
+          <span class="num">${i + 1}</span>
+          <span class="nm">${l.title}</span>
+          ${DONE.has(l.id) ? '<span class="doneheart">♥</span>' : ''}
+        </button>`).join('')}
+      </div>
+      <button class="btn" id="backBtn" style="font-size:18px; padding:6px 24px;">← back</button>
+    </div>`;
+  stage.querySelectorAll('.lvlcard').forEach(c => c.onclick = () => startLevel(+c.dataset.i));
+  document.getElementById('backBtn').onclick = showTitle;
 }
 
 function showEnd(){
   clearStage();
   hud.classList.add('hidden');
   hintBtn.classList.add('hidden');
+  pauseBtn.classList.add('hidden');
   stage.innerHTML = bunting() + `
     <div class="screen">
       <div class="bigheart">♥</div>
       <div class="bigtitle">All tidy, ${CONFIG.herName}!</div>
       <div class="sub">${CONFIG.dedication}</div>
       <div class="tiny">— love from me, ${CONFIG.pack.slice(0, -1).join(', ')} &amp; ${CONFIG.pack[CONFIG.pack.length - 1]} ♥</div>
-      <button class="btn" id="againBtn">tidy again ✨</button>
+      <div style="display:flex; gap:14px;">
+        <button class="btn" id="againBtn">tidy again ✨</button>
+        <button class="btn" id="endLvlsBtn">levels ♥</button>
+      </div>
     </div>`;
   document.getElementById('againBtn').onclick = showTitle;
+  document.getElementById('endLvlsBtn').onclick = showMenu;
   heartsTimer = setInterval(() => {
     const s = document.createElement('span');
     s.className = 'fallheart';
@@ -1031,6 +1561,12 @@ hintBtn.addEventListener('click', () => {
   setTimeout(() => stage.classList.remove('showHints'), 2600);
 });
 
+/* pause: resume / restart / back to the level menu */
+pauseBtn.addEventListener('click', () => { if(!state.busy) pauseOverlay.classList.remove('hidden'); });
+document.getElementById('resumeBtn').onclick  = () => pauseOverlay.classList.add('hidden');
+document.getElementById('restartBtn').onclick = () => startLevel(state.level);
+document.getElementById('menuBtn').onclick    = () => showMenu();
+
 /* the pack says hi — click a husky and it howls */
 CONFIG.pack.forEach((name, i) => {
   const d = document.createElement('div');
@@ -1047,4 +1583,4 @@ CONFIG.pack.forEach((name, i) => {
 showTitle();
 </script>
 </body>
-</html>
+</htm
