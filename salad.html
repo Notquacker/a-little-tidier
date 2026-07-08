@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Word Salad ♥ Gail's Game Room</title>
+<link rel="icon" type="image/png" href="build/icon.png">
+<meta name="theme-color" content="#f7f0e2">
+<link rel="stylesheet" href="shared.css">
+<style>
+  body{ display:flex; flex-direction:column; align-items:center; gap:12px; padding:56px 10px 130px; }
+  #theme{ font-size:19px; color:var(--ink-soft); }
+  #grid{
+    display:grid; grid-template-columns:repeat(10, 1fr);
+    width:min(92vw, 460px); aspect-ratio:1;
+    background:var(--card); border:3.5px solid var(--ink); border-radius:12px;
+    overflow:hidden; touch-action:none;
+  }
+  .lcell{
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(13px, 3.8vw, 21px);
+  }
+  .lcell.selng{ background:#f3e4c9; }
+  #words{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:480px; }
+  .chip{
+    padding:3px 14px; border-radius:999px; border:2px solid rgba(92,74,61,.4);
+    background:var(--card); font-size:16px;
+  }
+  .chip.hit{ background:var(--green); text-decoration:line-through; opacity:.75; }
+  #pack{ transform:scale(.6); transform-origin:100% 100%; }   /* smaller pups, off the grid */
+</style>
+</head>
+<body>
+
+<a class="roundBtn" href="index.html" title="game room">⌂</a>
+<h1 class="bigtitle" style="font-size:34px;">Word Salad</h1>
+<div id="theme"></div>
+<div id="grid"></div>
+<div id="words"></div>
+<button class="btn" id="again" style="font-size:18px; padding:7px 24px;">new salad ✨</button>
+
+<script src="shared.js"></script>
+<script>
+/* word sets — very personal on purpose 🙂 edit / add your own! */
+const WORD_SETS = [
+  { name:'the pack 🐺',  words:['ARCHY','CHIP','HUSKY','PAW','BONE','TREAT','WOOF','FLUFF'] },
+  { name:'love ♥',       words:['GAIL','HEART','LOVE','KISS','HUG','SWEET','CUTIE','MINE'] },
+  { name:'cozy home 🏠', words:['TIDY','BOOK','MUG','PLANT','CANDLE','SOCKS','PILLOW','TEA'] },
+];
+const N = 10;                                   // grid is 10×10
+
+/* ---------------------------------------------------------------
+   GENERATOR: for each word pick a random start + one of 8
+   directions. It fits if every cell is empty OR already holds the
+   same letter (that's how words cross!). If a word won't fit after
+   many tries, throw the whole grid away and start over.
+   --------------------------------------------------------------- */
+const DIRS = [[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
+function buildGrid(words){
+  for(let attempt = 0; attempt < 80; attempt++){
+    const g = Array(N * N).fill('');
+    let allPlaced = true;
+    for(const w of [...words].sort((a, b) => b.length - a.length)){
+      let placed = false;
+      for(let t = 0; t < 250 && !placed; t++){
+        const [dr, dc] = DIRS[Math.floor(Math.random() * 8)];
+        const r0 = Math.floor(Math.random() * N), c0 = Math.floor(Math.random() * N);
+        const r1 = r0 + dr * (w.length - 1), c1 = c0 + dc * (w.length - 1);
+        if(r1 < 0 || r1 >= N || c1 < 0 || c1 >= N) continue;
+        let fits = true;
+        for(let i = 0; i < w.length; i++){
+          const cell = g[(r0 + dr*i) * N + c0 + dc*i];
+          if(cell && cell !== w[i]){ fits = false; break; }
+        }
+        if(!fits) continue;
+        for(let i = 0; i < w.length; i++) g[(r0 + dr*i) * N + c0 + dc*i] = w[i];
+        placed = true;
+      }
+      if(!placed){ allPlaced = false; break; }
+    }
+    if(allPlaced){
+      const FILLER = 'AABCDEEGHIKLMNOOPRSTUW';   // friendly letters for the gaps
+      for(let i = 0; i < N*N; i++) if(!g[i]) g[i] = FILLER[Math.floor(Math.random() * FILLER.length)];
+      return g;
+    }
+  }
+}
+
+/* ---------------- the playing part ---------------- */
+const grid   = document.getElementById('grid');
+const wordsE = document.getElementById('words');
+const themeE = document.getElementById('theme');
+let letters, remaining, foundColor = 0;
+
+function newGame(){
+  const set = WORD_SETS[Math.floor(Math.random() * WORD_SETS.length)];
+  themeE.textContent = 'theme: ' + set.name;
+  remaining = new Set(set.words);
+  letters = buildGrid(set.words);
+  grid.innerHTML = letters.map(ch => `<div class="lcell">${ch}</div>`).join('');
+  wordsE.innerHTML = set.words.map(w => `<span class="chip" data-w="${w}">${w.toLowerCase()}</span>`).join('');
+}
+
+/* pointer position → grid cell, with pure math */
+function cellFrom(e){
+  const r = grid.getBoundingClientRect();
+  return {
+    r: clamp(Math.floor((e.clientY - r.top)  / r.height * N), 0, N - 1),
+    c: clamp(Math.floor((e.clientX - r.left) / r.width  * N), 0, N - 1),
+  };
+}
+
+/* snap the drag to one of the 8 straight directions */
+function lineCells(a, b){
+  const dr = b.r - a.r, dc = b.c - a.c, adr = Math.abs(dr), adc = Math.abs(dc);
+  let sr, sc, len;
+  if(adr > adc * 2){ sr = Math.sign(dr); sc = 0; len = adr; }
+  else if(adc > adr * 2){ sr = 0; sc = Math.sign(dc); len = adc; }
+  else { sr = Math.sign(dr); sc = Math.sign(dc); len = Math.min(adr, adc) || Math.max(adr, adc); }
+  const cells = [];
+  for(let i = 0; i <= len; i++){
+    const r = a.r + sr*i, c = a.c + sc*i;
+    if(r < 0 || r >= N || c < 0 || c >= N) break;
+    cells.push(r * N + c);
+  }
+  return cells;
+}
+
+let selStart = null, selCells = [];
+function preview(cells){
+  grid.querySelectorAll('.selng').forEach(d => d.classList.remove('selng'));
+  cells.forEach(i => grid.children[i].classList.add('selng'));
+}
+grid.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  selStart = cellFrom(e);
+  selCells = [selStart.r * N + selStart.c];
+  preview(selCells);
+});
+grid.addEventListener('pointermove', e => {
+  if(!selStart) return;
+  selCells = lineCells(selStart, cellFrom(e));
+  preview(selCells);
+});
+addEventListener('pointerup', () => {
+  if(!selStart) return;
+  const word = selCells.map(i => letters[i]).join('');
+  const rev  = [...word].reverse().join('');
+  const hit  = remaining.has(word) ? word : remaining.has(rev) ? rev : null;
+  if(hit){
+    remaining.delete(hit);
+    const col = PALETTE[foundColor++ % PALETTE.length];
+    selCells.forEach(i => { grid.children[i].style.background = col; });
+    wordsE.querySelector(`[data-w="${hit}"]`).classList.add('hit');
+    ding();
+    sparkEl(grid.children[selCells[Math.floor(selCells.length / 2)]], 8);
+    if(remaining.size === 0){
+      fanfare(); awoo();
+      sparkEl(grid, 26);
+      showBanner('salad finished! ♥', 2600);
+    }
+  }
+  preview([]);
+  selStart = null; selCells = [];
+});
+
+document.getElementById('again').onclick = newGame;
+buildPack();
+newGame();
+</script>
+</body>
+</html>

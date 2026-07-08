@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Wordle ♥ Gail's Game Room</title>
+<link rel="icon" type="image/png" href="build/icon.png">
+<meta name="theme-color" content="#f7f0e2">
+<link rel="stylesheet" href="shared.css">
+<style>
+  body{ display:flex; flex-direction:column; align-items:center; gap:12px; padding:56px 10px 130px; }
+  h1{ margin:0; }
+  #board{ display:grid; grid-template-rows:repeat(6, 1fr); gap:6px; }
+  .brow{ display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; }
+  .tile{
+    width:min(58px, 15vw); height:min(58px, 15vw);
+    border:2.5px solid #cbbda9; border-radius:9px; background:var(--card);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(20px, 6vw, 30px); transition:transform .12s, background .3s, border-color .3s;
+  }
+  .tile.fill{ border-color:var(--ink-soft); transform:scale(1.06); }
+  .tile.g{ background:var(--green);  border-color:var(--green); }
+  .tile.y{ background:var(--yellow); border-color:var(--yellow); }
+  .tile.x{ background:#ddd2c0; border-color:#ddd2c0; color:#8a7c6b; }
+  #kb{ display:flex; flex-direction:column; gap:6px; align-items:center; }
+  .krow{ display:flex; gap:5px; }
+  .key{
+    min-width:30px; padding:11px 8px; border-radius:8px; border:2px solid rgba(92,74,61,.35);
+    background:var(--card); font-family:inherit; font-size:15px; color:var(--ink); cursor:pointer;
+  }
+  .key.wide{ padding:11px 12px; }
+  .key.g{ background:var(--green); } .key.y{ background:var(--yellow); }
+  .key.x{ background:#ddd2c0; color:#8a7c6b; }
+  .key:active{ transform:translateY(2px); }
+  #again{ display:none; }
+  #pack{ transform:scale(.6); transform-origin:100% 100%; }   /* smaller pups, off the keyboard */
+</style>
+</head>
+<body>
+
+<a class="roundBtn" href="index.html" title="game room">⌂</a>
+<h1 class="bigtitle" style="font-size:34px;">Wordle</h1>
+<div class="tiny">guess the 5-letter word in 6 tries</div>
+<div id="board"></div>
+<div id="kb"></div>
+<button class="btn" id="again">new word ✨</button>
+
+<script src="shared.js"></script>
+<script>
+/* answers the game can pick — edit freely, add Dutch words if you like! */
+const ANSWERS = ("HUSKY HEART SWEET TREAT PUPPY SMILE DAISY TULIP PEACH BERRY HONEY CANDY " +
+  "APPLE MANGO MELON LEMON GRAPE OLIVE TOAST BREAD CREAM SUGAR SPICE JUICE PIZZA SALAD LUNCH FEAST " +
+  "HOUSE CHAIR TABLE PLANT BLOOM MAPLE RIVER OCEAN BEACH CORAL SHELL PEARL WHALE ROBIN TIGER PANDA " +
+  "MOUSE SHEEP ZEBRA GHOST FAIRY MAGIC ROYAL QUEEN CROWN CHARM LUCKY HAPPY MERRY PEACE QUIET DREAM " +
+  "SLEEP NIGHT SUNNY RAINY SNOWY FROST STORM CLOUD LIGHT SHINE FLAME GLOBE WORLD EARTH " +
+  "MUSIC PIANO DANCE PARTY STORY PAINT BRUSH CHESS TRAIN COAST FLOAT DRINK WATER FLOUR CHEEK BRAVE " +
+  "CLEAN FRESH PLUSH TEDDY JELLY SNACK SPOON").split(' ');
+
+let answer, row, col, done;
+const board = document.getElementById('board');
+const kb    = document.getElementById('kb');
+const again = document.getElementById('again');
+
+/* ---------------------------------------------------------------
+   THE core of Wordle: score a guess against the answer.
+   Two passes, so double letters behave correctly:
+   pass 1 — exact matches turn green, and we COUNT what's left
+   pass 2 — a letter only turns yellow while that count lasts
+   --------------------------------------------------------------- */
+function score(guess, ans){
+  const res = Array(5).fill('x'), left = {};
+  for(let i = 0; i < 5; i++){
+    if(guess[i] === ans[i]) res[i] = 'g';
+    else left[ans[i]] = (left[ans[i]] || 0) + 1;
+  }
+  for(let i = 0; i < 5; i++){
+    if(res[i] !== 'g' && left[guess[i]] > 0){ res[i] = 'y'; left[guess[i]]--; }
+  }
+  return res;
+}
+
+function newGame(){
+  answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+  row = 0; col = 0; done = false;
+  again.style.display = 'none';
+  board.innerHTML = Array.from({length: 6}, () =>
+    `<div class="brow">${'<div class="tile"></div>'.repeat(5)}</div>`).join('');
+  kb.innerHTML = ['QWERTYUIOP', 'ASDFGHJKL', '⏎ZXCVBNM⌫'].map(r =>
+    `<div class="krow">${[...r].map(k =>
+      `<button class="key ${k === '⏎' || k === '⌫' ? 'wide' : ''}" data-k="${k}">${k}</button>`).join('')}</div>`).join('');
+  kb.querySelectorAll('.key').forEach(k => k.onclick = () => press(k.dataset.k));
+}
+
+const tile = (r, c) => board.children[r].children[c];
+
+function press(k){
+  if(done) return;
+  if(k === '⌫' || k === 'BACKSPACE'){
+    if(col > 0){ col--; tile(row, col).textContent = ''; tile(row, col).classList.remove('fill'); }
+    return;
+  }
+  if(k === '⏎' || k === 'ENTER'){ submit(); return; }
+  if(/^[A-Z]$/.test(k) && col < 5){
+    tile(row, col).textContent = k;
+    tile(row, col).classList.add('fill');
+    col++;
+  }
+}
+
+function submit(){
+  if(col < 5) return;
+  let guess = '';
+  for(let c = 0; c < 5; c++) guess += tile(row, c).textContent;
+  const res = score(guess, answer);
+
+  res.forEach((r, c) => setTimeout(() => {      // staggered flip reveal
+    tile(row, c).classList.add(r);
+    const key = kb.querySelector(`[data-k="${guess[c]}"]`);
+    const rank = { x: 1, y: 2, g: 3 };          // never downgrade a key's colour
+    const cur = key.classList.contains('g') ? 3 : key.classList.contains('y') ? 2 : key.classList.contains('x') ? 1 : 0;
+    if(rank[r] > cur){ key.classList.remove('g', 'y', 'x'); key.classList.add(r); }
+  }, c * 130));
+
+  setTimeout(() => {
+    if(guess === answer){
+      done = true;
+      fanfare(); awoo();
+      sparkEl(board.children[row], 22);
+      showBanner(['genius ♥', 'amazing!', 'so smart!', 'lovely!', 'phew!', 'just in time ♥'][row]);
+      again.style.display = 'inline-block';
+    } else if(++row === 6){
+      done = true;
+      thud();
+      showBanner(`it was ${answer} ♥`, 3200);
+      again.style.display = 'inline-block';
+    }
+    col = 0;
+  }, 5 * 130 + 150);
+}
+
+/* real keyboard works too */
+addEventListener('keydown', e => press(e.key.toUpperCase()));
+again.onclick = newGame;
+
+buildPack();
+newGame();
+</script>
+</body>
+</html>

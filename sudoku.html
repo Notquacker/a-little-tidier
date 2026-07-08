@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sudoku ♥ Gail's Game Room</title>
+<link rel="icon" type="image/png" href="build/icon.png">
+<meta name="theme-color" content="#f7f0e2">
+<link rel="stylesheet" href="shared.css">
+<style>
+  body{ display:flex; flex-direction:column; align-items:center; gap:12px; padding:56px 10px 130px; }
+  #diffs{ display:flex; gap:9px; }
+  #diffs .btn{ font-size:16px; padding:5px 18px; }
+  #diffs .btn.on{ background:linear-gradient(180deg,#eaf3e4,#d8ead0); }
+  #board{
+    display:grid; grid-template-columns:repeat(9, 1fr);
+    width:min(92vw, 480px); aspect-ratio:1;
+    border:3.5px solid var(--ink); border-radius:10px; overflow:hidden;
+    background:var(--card); touch-action:manipulation;
+  }
+  .cell{
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(15px, 4.4vw, 26px); cursor:pointer;
+    border-right:1.5px solid #ddd0bb; border-bottom:1.5px solid #ddd0bb;
+    color:#7d92b8;                          /* your numbers: soft blue */
+  }
+  .cell.b-r{ border-right:2.8px solid var(--ink); }
+  .cell.b-b{ border-bottom:2.8px solid var(--ink); }
+  .cell.given{ color:var(--ink); }          /* printed numbers: ink */
+  .cell.sel{ background:#f3e4c9; }
+  .cell.same{ background:#f7efdc; }
+  .cell.conflict{ color:#c96a6a; }
+  #pad{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:480px; }
+  #pad button{
+    width:44px; height:44px; border-radius:10px; border:2.5px solid var(--ink);
+    background:var(--card); font-family:inherit; font-size:20px; color:var(--ink); cursor:pointer;
+    box-shadow:2px 3px 0 rgba(92,74,61,.2);
+  }
+  #pad button:active{ transform:translateY(2px); box-shadow:none; }
+  #pack{ transform:scale(.6); transform-origin:100% 100%; }   /* smaller pups, off the board */
+</style>
+</head>
+<body>
+
+<a class="roundBtn" href="index.html" title="game room">⌂</a>
+<h1 class="bigtitle" style="font-size:34px;">Sudoku</h1>
+<div id="diffs">
+  <button class="btn" data-g="38">easy</button>
+  <button class="btn on" data-g="32">medium</button>
+  <button class="btn" data-g="27">hard</button>
+</div>
+<div id="board"></div>
+<div id="pad"></div>
+
+<script src="shared.js"></script>
+<script>
+/* ---------------------------------------------------------------
+   Generating sudoku = two classic algorithms:
+
+   1. BACKTRACKING (fill): put a number in a cell; if the rest of
+      the board becomes impossible, take it back and try the next
+      number. Recursion + undo. This builds a full valid board.
+
+   2. UNIQUENESS: remove numbers one by one, and after each removal
+      COUNT the solutions (stopping at 2). If a removal allows a
+      second solution, put the number back — a fair puzzle has
+      exactly one answer.
+   --------------------------------------------------------------- */
+function okAt(g, i, v){
+  const r = Math.floor(i / 9), c = i % 9, br = r - r % 3, bc = c - c % 3;
+  for(let k = 0; k < 9; k++){
+    if(g[r*9 + k] === v || g[k*9 + c] === v) return false;
+    if(g[(br + Math.floor(k/3))*9 + bc + k%3] === v) return false;
+  }
+  return true;
+}
+function solvedGrid(){
+  const g = Array(81).fill(0);
+  function fill(i){
+    if(i === 81) return true;
+    for(const v of shuffle([1,2,3,4,5,6,7,8,9])){
+      if(okAt(g, i, v)){
+        g[i] = v;
+        if(fill(i + 1)) return true;
+        g[i] = 0;                              // ← the "backtrack"
+      }
+    }
+    return false;
+  }
+  fill(0);
+  return g;
+}
+function countSolutions(start, limit = 2){
+  const g = start.slice();
+  let count = 0;
+  function solve(){
+    if(count >= limit) return;
+    const i = g.indexOf(0);
+    if(i === -1){ count++; return; }
+    for(let v = 1; v <= 9; v++){
+      if(okAt(g, i, v)){ g[i] = v; solve(); g[i] = 0; }
+    }
+  }
+  solve();
+  return count;
+}
+function makePuzzle(givens){
+  const sol = solvedGrid();
+  const puz = sol.slice();
+  let filled = 81;
+  for(const i of shuffle([...Array(81).keys()])){
+    if(filled <= givens) break;
+    const keep = puz[i];
+    puz[i] = 0;
+    if(countSolutions(puz) === 1) filled--;
+    else puz[i] = keep;                        // removal broke uniqueness → undo
+  }
+  return { puz, sol };
+}
+
+/* ---------------- the playing part ---------------- */
+const board = document.getElementById('board');
+let puzzle, solution, entries, sel = -1, won = false;
+
+function newGame(givens = 32){
+  ({ puz: puzzle, sol: solution } = makePuzzle(givens));
+  entries = puzzle.slice();
+  sel = -1; won = false;
+  board.innerHTML = '';
+  for(let i = 0; i < 81; i++){
+    const d = document.createElement('div');
+    d.className = 'cell';
+    const r = Math.floor(i / 9), c = i % 9;
+    if(c === 2 || c === 5) d.classList.add('b-r');   // thick 3×3 box lines
+    if(r === 2 || r === 5) d.classList.add('b-b');
+    if(puzzle[i]){ d.textContent = puzzle[i]; d.classList.add('given'); }
+    d.onclick = () => selectCell(i);
+    board.appendChild(d);
+  }
+}
+
+function selectCell(i){
+  sel = i;
+  paint();
+}
+
+function paint(){
+  for(let i = 0; i < 81; i++){
+    const d = board.children[i];
+    d.classList.toggle('sel', i === sel);
+    d.classList.toggle('same', sel >= 0 && entries[sel] && entries[i] === entries[sel] && i !== sel);
+    d.classList.toggle('conflict', !!entries[i] && !puzzle[i] && hasConflict(i));
+  }
+}
+
+function hasConflict(i){
+  const v = entries[i];
+  const r = Math.floor(i / 9), c = i % 9, br = r - r % 3, bc = c - c % 3;
+  for(let k = 0; k < 9; k++){
+    const a = r*9 + k, b = k*9 + c, x = (br + Math.floor(k/3))*9 + bc + k%3;
+    if((a !== i && entries[a] === v) || (b !== i && entries[b] === v) || (x !== i && entries[x] === v)) return true;
+  }
+  return false;
+}
+
+function inputNum(v){
+  if(won || sel < 0 || puzzle[sel]) return;    // can't change printed numbers
+  entries[sel] = v;
+  board.children[sel].textContent = v || '';
+  paint();
+  if(v) tone(620, 0, .06, 'triangle', .05);
+  if(entries.every((e, i) => e === solution[i])){   // solved!
+    won = true;
+    fanfare(); awoo();
+    sparkEl(board, 26);
+    showBanner('solved it! so smart ♥', 2600);
+  }
+}
+
+/* number pad + real keyboard */
+const pad = document.getElementById('pad');
+[1,2,3,4,5,6,7,8,9].forEach(n => {
+  const b = document.createElement('button');
+  b.textContent = n;
+  b.onclick = () => inputNum(n);
+  pad.appendChild(b);
+});
+const del = document.createElement('button');
+del.textContent = '✕';
+del.onclick = () => inputNum(0);
+pad.appendChild(del);
+
+addEventListener('keydown', e => {
+  if(/^[1-9]$/.test(e.key)) inputNum(+e.key);
+  if(e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') inputNum(0);
+  if(sel >= 0){
+    const moves = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-9, ArrowDown:9 };
+    if(e.key in moves) selectCell(clamp(sel + moves[e.key], 0, 80));
+  }
+});
+
+/* difficulty buttons */
+document.querySelectorAll('#diffs .btn').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#diffs .btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  newGame(+b.dataset.g);
+});
+
+buildPack();
+newGame(32);
+</script>
+</body>
+</html>

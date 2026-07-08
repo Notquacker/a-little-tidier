@@ -1,0 +1,102 @@
+/* =====================================================================
+   shared.css — the cozy look every page of the game room shares.
+   Change a colour here and ALL games change with it.
+   ===================================================================== */
+:root{
+  --paper:#f7f0e2;
+  --ink:#5c4a3d;
+  --ink-soft:#a08c7a;
+  --pink:#e8a9b0;
+  --blue:#a9c3e8;
+  --green:#adcaa2;
+  --yellow:#ecd28a;
+  --lilac:#cbb3e0;
+  --peach:#f0c4a0;
+  --card:#fffdf6;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; min-height:100%; }
+body{
+  /* warm wall + baseboard + wooden floor */
+  background:linear-gradient(180deg,
+    #faf4e6 0%, #f7eeda 52%, #f2e6cc 74%,
+    #f9f1e0 74%, #f9f1e0 77%,
+    #dfbd92 77%, #cda67a 100%) fixed;
+  color:var(--ink);
+  font-family:'Segoe Print','Comic Sans MS',cursive;
+  user-select:none;
+  min-height:100vh;
+}
+body::before{           /* paper speckle */
+  content:''; position:fixed; inset:0; pointer-events:none; opacity:.55;
+  background-image:radial-gradient(#dcd0b8 1.2px, transparent 1.8px),
+                   radial-gradient(#e5dac4 1.2px, transparent 1.8px);
+  background-size:170px 170px, 240px 240px;
+  background-position:0 0, 90px 70px;
+}
+body::after{            /* soft vignette */
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 40%, transparent 58%, rgba(92,74,61,.13) 100%);
+}
+
+.bigtitle{ font-size:46px; line-height:1.1; text-shadow:2.5px 3.5px 0 rgba(226,190,148,.55); text-align:center; }
+.sub{ font-size:21px; color:var(--ink-soft); text-align:center; }
+.tiny{ font-size:16px; color:var(--ink-soft); }
+
+.btn{
+  font-family:inherit; font-size:22px; color:var(--ink);
+  background:linear-gradient(180deg,#fffdf6,#f8eed8); border:3px solid var(--ink); border-radius:999px;
+  padding:9px 30px; cursor:pointer; transition:transform .15s, box-shadow .15s;
+  box-shadow:3px 4px 0 rgba(92,74,61,.25); text-decoration:none; display:inline-block;
+}
+.btn:hover{ transform:translateY(-2px); box-shadow:4px 7px 0 rgba(92,74,61,.22); }
+.btn:active{ transform:translateY(3px); box-shadow:none; }
+
+/* round corner buttons (home, etc.) */
+.roundBtn{
+  position:fixed; top:12px; left:14px; z-index:6;
+  width:44px; height:44px; border-radius:50%;
+  border:2.5px solid var(--ink); background:var(--card); color:var(--ink);
+  font-family:inherit; font-size:20px; cursor:pointer; text-decoration:none;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:2px 3px 0 rgba(92,74,61,.25);
+}
+.roundBtn:active{ transform:translateY(2px); box-shadow:none; }
+
+/* pop-up banner ("Just right ♥") */
+#banner{
+  position:fixed; top:44%; left:50%; z-index:20;
+  transform:translate(-50%,-50%) scale(0);
+  background:linear-gradient(180deg,#fffdf6,#faf0da); border:3px solid var(--ink); border-radius:999px;
+  padding:12px 36px; font-size:28px; white-space:nowrap;
+  box-shadow:3px 5px 0 rgba(92,74,61,.2);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+#banner.show{ transform:translate(-50%,-50%) scale(1) rotate(-2deg); }
+
+/* sparkles + falling hearts */
+.spark{ position:fixed; z-index:30; pointer-events:none; font-size:20px; animation:pop .8s ease-out forwards; }
+@keyframes pop{
+  from{ transform:translate(0,0) scale(.4); opacity:1; }
+  to  { transform:translate(var(--dx),var(--dy)) scale(1.25); opacity:0; }
+}
+.fallheart{ position:fixed; top:-40px; z-index:2; pointer-events:none; color:var(--pink); animation:fall linear forwards; }
+@keyframes fall{ to{ transform:translateY(115vh) rotate(50deg); opacity:.15; } }
+.twinkle{ position:absolute; color:var(--yellow); pointer-events:none; animation:tw 2.6s ease-in-out infinite; }
+@keyframes tw{ 0%,100%{ opacity:.15; transform:scale(.8) rotate(-8deg); } 50%{ opacity:.95; transform:scale(1.2) rotate(8deg); } }
+
+/* the pack (Archy, Ice & Chip) */
+#pack{ position:fixed; right:14px; bottom:0; z-index:4; display:flex; align-items:flex-end; gap:2px; }
+#pack svg{ filter:drop-shadow(2px 4px 3px rgba(92,74,61,.22)); }
+.dog{ cursor:pointer; text-align:center; }
+.dog:active{ transform:translateY(2px); }
+.dog .tag{
+  display:inline-block; font-size:13px; color:var(--ink); line-height:1.3;
+  background:rgba(255,253,246,.88); border-radius:8px; padding:0 8px;
+  margin-top:-6px; margin-bottom:4px; box-shadow:1px 2px 0 rgba(92,74,61,.15);
+}
+.tail{ transform-box:view-box; transform-origin:94px 106px; animation:wag 3s ease-in-out infinite; }
+.eye{ transform-box:fill-box; transform-origin:center; animation:blink 5s infinite; }
+@keyframes wag{ 0%,100%{transform:rotate(0)} 50%{transform:rotate(14deg)} }
+@keyframes blink{ 0%,91%,100%{transform:scaleY(1)} 95%{transform:scaleY(.08)} }

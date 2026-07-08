@@ -1,8 +1,8 @@
 {
   "name": "a-little-tidier",
-  "productName": "A Little Tidier",
-  "version": "1.0.0",
-  "description": "A cozy tidying game, made with love for Gail (and Archy, Ice & Chip)",
+  "productName": "Gails Game Room",
+  "version": "2.0.0",
+  "description": "Four cozy games, made with love for Gail (and Archy, Ice & Chip)",
   "main": "main.js",
   "author": "Xayvion",
   "license": "MIT",
@@ -12,10 +12,17 @@
   },
   "build": {
     "appId": "com.xayvion.alittletidier",
-    "productName": "A Little Tidier",
+    "productName": "Gails Game Room",
     "files": [
       "main.js",
       "index.html",
+      "tidier.html",
+      "sudoku.html",
+      "wordle.html",
+      "salad.html",
+      "shared.css",
+      "shared.js",
+      "manifest.json",
       "build/icon.png"
     ],
     "win": {

@@ -30,7 +30,7 @@ function createWindow () {
     height: 720,
     minWidth: 640,
     minHeight: 480,
-    title: 'A Little Tidier ♥',
+    title: "Gail's Game Room ♥",
     autoHideMenuBar: true,          // hides the File/Edit/View menu bar (Alt shows it)
     backgroundColor: '#f7f0e2',     // paper colour while the page loads (no white flash)
     icon: path.join(__dirname, 'build', 'icon.png'),   // window / taskbar icon

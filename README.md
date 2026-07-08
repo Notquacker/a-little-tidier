@@ -1,14 +1,19 @@
 <img src="build/icon.png" width="140" align="right" alt="A Little Tidier icon — pixel art of Gail with Archy, Ice and Chip">
 
-# A Little Tidier ♥
+# Gail's Game Room ♥
 
-*A cozy little tidying game made with love for **Gail**, starring our three babies —
+*Four cozy games made with love for **Gail**, starring our three babies —
 **Archy**, **Ice** & **Chip** the huskies.*
 
-Drag, straighten and sort everyday things until everything feels **just right**.
-No timer, no score, no way to lose — just calm tidying, sparkles, and a howling
-husky or three. Inspired by [*A Little to the Left*](https://alittletotheleft.com/),
-but built 100% from scratch with original code and art.
+| Game | What it is |
+|---|---|
+| 🖼️ **A Little Tidier** | drag, straighten and sort things until they feel *just right* — 13 levels, 5 invented by Gail. Inspired by [*A Little to the Left*](https://alittletotheleft.com/), built 100% from scratch |
+| 🧩 **Sudoku** | freshly generated puzzles (always exactly one solution), three difficulties |
+| 🟩 **Wordle** | guess the five-letter word in six tries, cozy edition |
+| 🥗 **Word Salad** | find the hidden words — themed around the pack, love, and home |
+
+Everything is one small hand-written website: the home screen picks the game,
+every game shares the same pastel look, and the huskies supervise from the corner.
 
 ---
 

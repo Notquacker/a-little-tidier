@@ -1,7 +1,7 @@
 {
-  "name": "A Little Tidier",
-  "short_name": "Tidier",
-  "description": "A cozy tidying game for Gail, starring Archy, Ice & Chip",
+  "name": "Gail's Game Room",
+  "short_name": "Game Room",
+  "description": "Four cozy games for Gail, starring Archy, Ice & Chip",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f7f0e2",
