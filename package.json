@@ -22,6 +22,7 @@
       "salad.html",
       "shared.css",
       "shared.js",
+      "words.json",
       "manifest.json",
       "build/icon.png"
     ],
