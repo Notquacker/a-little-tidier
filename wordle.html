@@ -22,6 +22,9 @@
   .tile.g{ background:var(--green);  border-color:var(--green); }
   .tile.y{ background:var(--yellow); border-color:var(--yellow); }
   .tile.x{ background:#ddd2c0; border-color:#ddd2c0; color:#8a7c6b; }
+  .tile.invalid{ background:#f3caca; border-color:#c96a6a; }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .tile.shake{ animation:shake .3s ease 2; }
   #kb{ display:flex; flex-direction:column; gap:6px; align-items:center; }
   .krow{ display:flex; gap:5px; }
   .key{
@@ -53,9 +56,39 @@ const ANSWERS = ("HUSKY HEART SWEET TREAT PUPPY SMILE DAISY TULIP PEACH BERRY HO
   "MOUSE SHEEP ZEBRA GHOST FAIRY MAGIC ROYAL QUEEN CROWN CHARM LUCKY HAPPY MERRY PEACE QUIET DREAM " +
   "SLEEP NIGHT SUNNY RAINY SNOWY FROST STORM CLOUD LIGHT SHINE FLAME GLOBE WORLD EARTH " +
   "MUSIC PIANO DANCE PARTY STORY PAINT BRUSH CHESS TRAIN COAST FLOAT DRINK WATER FLOUR CHEEK BRAVE " +
-  "CLEAN FRESH PLUSH TEDDY JELLY SNACK SPOON").split(' ');
+  "CLEAN FRESH PLUSH TEDDY JELLY SNACK SPOON " +
+  // extra words added for more variety — all real, all kept cozy/positive on purpose
+  "ABOUT ABOVE ADULT AFTER AGAIN AGENT AGREE AHEAD ALARM ALBUM ALIVE ALLOW ALONE ALONG ALTER AMONG " +
+  "ANGEL ANGLE APPLY ARENA ARGUE ARISE ARMOR ASIDE ASSET AVOID AWAIT AWAKE AWARD AWARE BADGE BASIC " +
+  "BASIN BEGIN BEING BELOW BENCH BIRTH BLACK BLADE BLANK BLAST BLOCK BOARD BOAST BONUS BOOST BRAIN " +
+  "BRAND BRASS BREAK BREED BRIEF BRING BROAD BROWN BUILD BUILT BUNCH CABLE CARGO CARRY CATCH CAUSE " +
+  "CHAIN CHALK CHART CHASE CHECK CHEST CHIEF CHILD CHOSE CIVIL CLAIM CLASS CLEAR CLICK CLIFF CLIMB " +
+  "CLOCK CLOSE COACH COVER CRAFT CRAZY CREEK CROSS CROWD CRUSH CURVE CYCLE DAILY DEBUT DECAY DELAY " +
+  "DEPTH DERBY DOZEN DRAFT DRAMA DRANK DRESS DRIVE DROVE EARLY EIGHT ELBOW ELDER ELECT EMPTY ENJOY " +
+  "ENTER ENTRY EQUAL EVENT EVERY EXACT EXIST EXTRA FAITH FALSE FAVOR FENCE FIBER FIELD FIFTH FIFTY " +
+  "FINAL FIRST FIXED FLASH FLEET FLOOR FLUID FOCUS FORCE FORTH FORTY FORUM FOUND FRAME FRANK FRONT " +
+  "FRUIT FUNNY GIANT GIVEN GLASS GLORY GRACE GRADE GRAND GRANT GRASS GREAT GREEN GREET GRILL GROUP " +
+  "GROWN GUARD GUESS GUEST GUIDE HEAVY HELLO HONOR HORSE HOTEL HUMAN HUMOR IDEAL IMAGE INDEX INNER " +
+  "INPUT ISSUE IVORY JOINT JUDGE KNOCK KNOWN LABEL LABOR LARGE LASER LATER LAUGH LAYER LEARN LEAST " +
+  "LEAVE LEGAL LEVEL LIMIT LINEN LOCAL LOGIC LOOSE LOWER LOYAL MAJOR MAKER MARCH MATCH MAYOR MEDAL " +
+  "MEDIA MERCY MERIT METAL MIGHT MINOR MINUS MODEL MONEY MONTH MORAL MOTOR MOUNT MOUTH MOVIE NERVE " +
+  "NEVER NOBLE NOISE NORTH NOTED NOVEL NURSE OFFER OFTEN ORDER OTHER OUTER OWNER PANEL PAPER PATCH " +
+  "PHASE PHONE PHOTO PIECE PILOT PITCH PLACE PLAIN PLANE PLATE POINT POUND POWER PRESS PRICE PRIDE " +
+  "PRIME PRINT PRIOR PRIZE PROOF PROUD PROVE QUICK QUITE QUOTE RADIO RAISE RANGE RAPID RATIO REACH " +
+  "READY REALM REBEL REFER RELAX REPLY RIDER RIDGE RIGHT RIVAL ROBOT ROCKY ROUGH ROUND ROUTE RUGBY " +
+  "RURAL SAUCE SCALE SCENE SCOPE SCORE SCOUT SENSE SERVE SEVEN SHALL SHAPE SHARE SHARP SHEET SHELF " +
+  "SHIFT SHIRT SHORT SHOWN SIGHT SILLY SINCE SIXTH SIXTY SIZED SKILL SLICE SLIDE SLOPE SMALL SMART " +
+  "SMELL SMOKE SNAKE SOLID SOLVE SOUND SOUTH SPACE SPARE SPEAK SPEED SPEND SPENT SPLIT SPOKE SPORT " +
+  "SQUAD STAFF STAGE STAIR STAKE STAND START STATE STEAM STEEL STEEP STICK STIFF STILL STOCK STONE " +
+  "STORE STOVE STRIP STUCK STUDY STUFF STYLE SUITE SUPER SWIFT SWING TAKEN TASTE TEACH THANK THEME " +
+  "THERE THICK THING THINK THIRD THOSE THREE THREW THROW TIGHT TIMER TITLE TODAY TOOTH TOTAL TOUCH " +
+  "TOUGH TOWER TRACE TRACK TRADE TREND TRIAL TRIBE TRICK TRIED TRIES TRUCK TRULY TRUNK TRUST TRUTH " +
+  "TWICE UNDER UNION UNITY UNTIL UPPER URBAN USAGE USUAL VALID VALUE VIDEO VISIT VITAL VOICE WATCH " +
+  "WEIGH WHEAT WHEEL WHERE WHICH WHILE WHITE WHOLE WHOSE WOMAN WORTH WOULD WRITE YIELD YOUNG YOUTH"
+).split(' ');
+const KNOWN_WORDS = new Set(ANSWERS);   // instant check — no network needed for our own list
 
-let answer, row, col, done;
+let answer, row, col, done, checking = false;
 const board = document.getElementById('board');
 const kb    = document.getElementById('kb');
 const again = document.getElementById('again');
@@ -80,7 +113,7 @@ function score(guess, ans){
 
 function newGame(){
   answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
-  row = 0; col = 0; done = false;
+  row = 0; col = 0; done = false; checking = false;
   again.style.display = 'none';
   board.innerHTML = Array.from({length: 6}, () =>
     `<div class="brow">${'<div class="tile"></div>'.repeat(5)}</div>`).join('');
@@ -91,7 +124,7 @@ function newGame(){
 }
 
 function restartSameWord(){          // "restart" = retry the same word
-  row = 0; col = 0; done = false;
+  row = 0; col = 0; done = false; checking = false;
   again.style.display = 'none';
   board.innerHTML = Array.from({length: 6}, () =>
     `<div class="brow">${'<div class="tile"></div>'.repeat(5)}</div>`).join('');
@@ -99,6 +132,37 @@ function restartSameWord(){          // "restart" = retry the same word
 }
 
 const tile = (r, c) => board.children[r].children[c];
+
+/* ---------------------------------------------------------------
+   Is this actually a word? Our own list answers instantly (and
+   guarantees the secret word itself always validates, even if the
+   dictionary API hiccups). Anything else gets looked up for real
+   via the Free Dictionary API. If there's no internet, we can't
+   check unfamiliar words, so we quietly let them through rather
+   than block play entirely — offline you're on the honour system.
+   --------------------------------------------------------------- */
+async function isRealWord(word){
+  if(KNOWN_WORDS.has(word)) return true;
+  try{
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    return res.ok;
+  }catch(e){
+    return true;   // offline — can't check, so don't block the guess
+  }
+}
+
+function flashInvalid(r){
+  thud();
+  for(let c = 0; c < 5; c++) tile(r, c).classList.add('invalid', 'shake');
+  setTimeout(() => {
+    for(let c = 0; c < 5; c++){
+      const t = tile(r, c);
+      t.classList.remove('invalid', 'shake', 'fill');
+      t.textContent = '';
+    }
+    if(row === r) col = 0;      // only reset the typing cursor if we're still on this row
+  }, 650);
+}
 
 function press(k){
   if(done) return;
@@ -114,14 +178,26 @@ function press(k){
   }
 }
 
-function submit(){
-  if(col < 5) return;
+async function submit(){
+  if(col < 5 || checking || done) return;
+  const myRow = row;                      // captured now, in case a restart happens mid-check
   let guess = '';
-  for(let c = 0; c < 5; c++) guess += tile(row, c).textContent;
+  for(let c = 0; c < 5; c++) guess += tile(myRow, c).textContent;
+
+  checking = true;
+  const valid = await isRealWord(guess);
+  checking = false;
+  if(row !== myRow || done) return;       // the board moved on while we were checking — abandon
+
+  if(!valid){
+    flashInvalid(myRow);
+    return;
+  }
+
   const res = score(guess, answer);
 
   res.forEach((r, c) => setTimeout(() => {      // staggered flip reveal
-    tile(row, c).classList.add(r);
+    tile(myRow, c).classList.add(r);
     const key = kb.querySelector(`[data-k="${guess[c]}"]`);
     const rank = { x: 1, y: 2, g: 3 };          // never downgrade a key's colour
     const cur = key.classList.contains('g') ? 3 : key.classList.contains('y') ? 2 : key.classList.contains('x') ? 1 : 0;
@@ -132,8 +208,8 @@ function submit(){
     if(guess === answer){
       done = true;
       fanfare(); awoo();
-      sparkEl(board.children[row], 22);
-      showBanner(['genius ♥', 'amazing!', 'so smart!', 'lovely!', 'phew!', 'just in time ♥'][row]);
+      sparkEl(board.children[myRow], 22);
+      showBanner(['genius ♥', 'amazing!', 'so smart!', 'lovely!', 'phew!', 'just in time ♥'][myRow]);
       again.style.display = 'inline-block';
     } else if(++row === 6){
       done = true;
