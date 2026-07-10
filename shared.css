@@ -2,6 +2,9 @@
    shared.css — the cozy look every page of the game room shares.
    Change a colour here and ALL games change with it.
    ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap');
+
 :root{
   --paper:#f7f0e2;
   --ink:#5c4a3d;
@@ -23,7 +26,7 @@ body{
     #f9f1e0 74%, #f9f1e0 77%,
     #dfbd92 77%, #cda67a 100%) fixed;
   color:var(--ink);
-  font-family:'Segoe Print','Comic Sans MS',cursive;
+  font-family:'Geist Pixel','Segoe Print','Comic Sans MS',cursive;
   user-select:none;
   min-height:100vh;
 }

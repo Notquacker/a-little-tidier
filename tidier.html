@@ -9,6 +9,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#f7f0e2">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Geist+Pixel&display=swap');
+
   :root{
     --paper:#f7f0e2;
     --ink:#5c4a3d;
@@ -30,7 +32,7 @@
       #f9f1e0 74%, #f9f1e0 77%,
       #dfbd92 77%, #cda67a 100%);
     color:var(--ink);
-    font-family:'Segoe Print','Comic Sans MS',cursive;
+    font-family:'Geist Pixel','Segoe Print','Comic Sans MS',cursive;
     user-select:none;
   }
   /* subtle paper speckle */
@@ -503,7 +505,7 @@ const mugSVG = (color, deco) => {
 };
 const decoHeart = heartPath(50, 68, 36, '#e8a9b0');
 const decoPaw   = pawAt(50, 76, 12);
-const decoInit  = `<text x="50" y="84" text-anchor="middle" font-size="38" font-family="Segoe Print, Comic Sans MS, cursive" fill="#fffdf6">${CONFIG.herName[0] || '♥'}</text>`;
+const decoInit  = `<text x="50" y="84" text-anchor="middle" font-size="38" font-family="Geist Pixel, Segoe Print, Comic Sans MS, cursive" fill="#fffdf6">${CONFIG.herName[0] || '♥'}</text>`;
 
 const boneSVG = (w, h) => {
   const g = uid('bn'), r = h * 0.27, lx = r + 1, rx = w - r - 1;
@@ -757,9 +759,9 @@ const tileSVG = (s, letter, color) => {
     <rect x="2" y="2" width="${s-4}" height="${s-6}" rx="11" fill="url(#${g})" stroke="${shade(color,.62)}" stroke-width="2"/>
     <path d="M 12 7 Q ${s/2} 3.5 ${s-12} 7" stroke="#fff" stroke-width="2.5" fill="none" opacity=".5" stroke-linecap="round"/>
     <text x="${s/2 + 1.5}" y="${s/2 + s*0.19 + 2}" text-anchor="middle" font-size="${s*0.5}"
-          font-family="Segoe Print, Comic Sans MS, cursive" fill="rgba(60,45,35,.3)">${letter}</text>
+          font-family="Geist Pixel, Segoe Print, Comic Sans MS, cursive" fill="rgba(60,45,35,.3)">${letter}</text>
     <text x="${s/2}" y="${s/2 + s*0.19}" text-anchor="middle" font-size="${s*0.5}"
-          font-family="Segoe Print, Comic Sans MS, cursive" fill="var(--ink)">${letter}</text>
+          font-family="Geist Pixel, Segoe Print, Comic Sans MS, cursive" fill="var(--ink)">${letter}</text>
   </svg>`;
 };
 
