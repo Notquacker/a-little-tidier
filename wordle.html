@@ -38,7 +38,6 @@
 </head>
 <body>
 
-<a class="roundBtn" href="index.html" title="game room">⌂</a>
 <h1 class="bigtitle" style="font-size:34px;">Wordle</h1>
 <div class="tiny">guess the 5-letter word in 6 tries</div>
 <div id="board"></div>
@@ -89,6 +88,14 @@ function newGame(){
     `<div class="krow">${[...r].map(k =>
       `<button class="key ${k === '⏎' || k === '⌫' ? 'wide' : ''}" data-k="${k}">${k}</button>`).join('')}</div>`).join('');
   kb.querySelectorAll('.key').forEach(k => k.onclick = () => press(k.dataset.k));
+}
+
+function restartSameWord(){          // "restart" = retry the same word
+  row = 0; col = 0; done = false;
+  again.style.display = 'none';
+  board.innerHTML = Array.from({length: 6}, () =>
+    `<div class="brow">${'<div class="tile"></div>'.repeat(5)}</div>`).join('');
+  kb.querySelectorAll('.key').forEach(k => k.classList.remove('g', 'y', 'x'));
 }
 
 const tile = (r, c) => board.children[r].children[c];
@@ -143,6 +150,7 @@ addEventListener('keydown', e => press(e.key.toUpperCase()));
 again.onclick = newGame;
 
 buildPack();
+setupPause(restartSameWord);
 newGame();
 </script>
 </body>

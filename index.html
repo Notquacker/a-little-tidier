@@ -107,6 +107,7 @@ function addTwinkles(n){
 }
 
 function showHome(){
+  history.replaceState(null, '', location.pathname);
   room.innerHTML = bunting() + `
     <div class="bigtitle" style="font-size:52px;">Gail's Game Room</div>
     <div class="sub">four cozy games, one happy pup pile ♥</div>
@@ -117,6 +118,7 @@ function showHome(){
 }
 
 function showGames(){
+  history.replaceState(null, '', '#games');
   room.innerHTML = bunting() + `
     <div class="bigtitle">pick a game ♥</div>
     <div class="cards">${GAMES.map(g => `
@@ -132,7 +134,7 @@ function showGames(){
 }
 
 buildPack();
-showHome();
+location.hash === '#games' ? showGames() : showHome();
 </script>
 </body>
 </html>

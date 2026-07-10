@@ -42,7 +42,6 @@
 </head>
 <body>
 
-<a class="roundBtn" href="index.html" title="game room">⌂</a>
 <h1 class="bigtitle" style="font-size:34px;">Sudoku</h1>
 <div id="diffs">
   <button class="btn" data-g="38">easy</button>
@@ -139,6 +138,13 @@ function newGame(givens = 32){
   }
 }
 
+function resetGame(){          // "restart" = same puzzle, undo your entries
+  entries = puzzle.slice();
+  sel = -1; won = false;
+  for(let i = 0; i < 81; i++) board.children[i].textContent = puzzle[i] || '';
+  paint();
+}
+
 function selectCell(i){
   sel = i;
   paint();
@@ -207,6 +213,7 @@ document.querySelectorAll('#diffs .btn').forEach(b => b.onclick = () => {
 });
 
 buildPack();
+setupPause(resetGame);
 newGame(32);
 </script>
 </body>

@@ -65,6 +65,20 @@ body::after{            /* soft vignette */
   box-shadow:2px 3px 0 rgba(92,74,61,.25);
 }
 .roundBtn:active{ transform:translateY(2px); box-shadow:none; }
+.roundBtn.right{ left:auto; right:14px; }
+.hidden{ display:none; }
+
+/* pause overlay (shared by every game — see shared.js setupPause()) */
+#pauseOverlay{
+  position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+  background:rgba(247,240,226,.82); backdrop-filter:blur(3px);
+}
+.pausePanel{
+  background:var(--card); border:3px solid var(--ink); border-radius:22px;
+  padding:26px 42px; text-align:center; display:flex; flex-direction:column; gap:13px;
+  box-shadow:4px 6px 0 rgba(92,74,61,.2);
+}
+.pausePanel .btn{ font-size:19px; padding:8px 24px; }
 
 /* pop-up banner ("Just right ♥") */
 #banner{

@@ -135,6 +135,38 @@ const huskySVG = (fur, collar) => `
   <svg width="96" height="98" viewBox="0 0 120 122" xmlns="http://www.w3.org/2000/svg">${huskyGuts(fur, collar)}
   </svg>`;
 
+/* ---------- pause overlay ----------
+   Every game calls setupPause(onRestart) once at startup. It injects a
+   ⏸ button + overlay (only once — safe to call after a restart too),
+   and wires: resume, restart (game-specific, via the callback you pass),
+   choose a game (the picker screen), and home (the welcome screen). */
+function setupPause(onRestart){
+  if(!document.getElementById('pauseBtn')){
+    const btn = document.createElement('button');
+    btn.id = 'pauseBtn'; btn.className = 'roundBtn'; btn.title = 'pause';
+    btn.textContent = '⏸';
+    document.body.appendChild(btn);
+  }
+  if(!document.getElementById('pauseOverlay')){
+    const ov = document.createElement('div');
+    ov.id = 'pauseOverlay'; ov.className = 'hidden';
+    ov.innerHTML = `
+      <div class="pausePanel">
+        <div style="font-size:25px;">paused ♥</div>
+        <button class="btn" id="resumeBtn">resume ▶</button>
+        <button class="btn" id="restartBtn">restart ↺</button>
+        <a class="btn" href="index.html#games">choose a game ♥</a>
+        <a class="btn" href="index.html">home ⌂</a>
+      </div>`;
+    document.body.appendChild(ov);
+  }
+  const btn = document.getElementById('pauseBtn');
+  const ov  = document.getElementById('pauseOverlay');
+  btn.onclick = () => ov.classList.remove('hidden');
+  ov.querySelector('#resumeBtn').onclick = () => ov.classList.add('hidden');
+  ov.querySelector('#restartBtn').onclick = () => { ov.classList.add('hidden'); onRestart(); };
+}
+
 /* put Archy, Ice & Chip in the corner of any page */
 function buildPack(){
   const names   = ['Archy', 'Ice', 'Chip'];

@@ -32,7 +32,6 @@
 </head>
 <body>
 
-<a class="roundBtn" href="index.html" title="game room">⌂</a>
 <h1 class="bigtitle" style="font-size:34px;">Word Salad</h1>
 <div id="theme"></div>
 <div id="grid"></div>
@@ -90,15 +89,22 @@ function buildGrid(words){
 const grid   = document.getElementById('grid');
 const wordsE = document.getElementById('words');
 const themeE = document.getElementById('theme');
-let letters, remaining, foundColor = 0;
+let letters, remaining, foundColor = 0, currentSet;
 
 function newGame(){
-  const set = WORD_SETS[Math.floor(Math.random() * WORD_SETS.length)];
-  themeE.textContent = 'theme: ' + set.name;
-  remaining = new Set(set.words);
-  letters = buildGrid(set.words);
+  currentSet = WORD_SETS[Math.floor(Math.random() * WORD_SETS.length)];
+  themeE.textContent = 'theme: ' + currentSet.name;
+  remaining = new Set(currentSet.words);
+  letters = buildGrid(currentSet.words);
   grid.innerHTML = letters.map(ch => `<div class="lcell">${ch}</div>`).join('');
-  wordsE.innerHTML = set.words.map(w => `<span class="chip" data-w="${w}">${w.toLowerCase()}</span>`).join('');
+  wordsE.innerHTML = currentSet.words.map(w => `<span class="chip" data-w="${w}">${w.toLowerCase()}</span>`).join('');
+}
+
+function restartSameSalad(){    // "restart" = same grid, undo the words you've found
+  foundColor = 0;
+  remaining = new Set(currentSet.words);
+  grid.querySelectorAll('.lcell').forEach(c => { c.style.background = ''; });
+  wordsE.querySelectorAll('.chip').forEach(c => c.classList.remove('hit'));
 }
 
 /* pointer position → grid cell, with pure math */
@@ -166,6 +172,7 @@ addEventListener('pointerup', () => {
 
 document.getElementById('again').onclick = newGame;
 buildPack();
+setupPause(restartSameSalad);
 newGame();
 </script>
 </body>
