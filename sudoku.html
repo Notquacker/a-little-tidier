@@ -30,6 +30,7 @@
   .cell.sel{ background:#f3e4c9; }
   .cell.same{ background:#f7efdc; }
   .cell.conflict{ color:#c96a6a; }
+  .cell.hint{ background:rgba(236,210,138,.4); }   /* a number the hint filled in for you */
   #pad{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:480px; }
   #pad button{
     width:44px; height:44px; border-radius:10px; border:2.5px solid var(--ink);
@@ -42,6 +43,7 @@
 </head>
 <body>
 
+<button class="roundBtn right" id="hintBtn" title="hint">?</button>
 <h1 class="bigtitle" style="font-size:34px;">Sudoku</h1>
 <div id="diffs">
   <button class="btn" data-g="38">easy</button>
@@ -120,11 +122,34 @@ function makePuzzle(givens){
 /* ---------------- the playing part ---------------- */
 const board = document.getElementById('board');
 let puzzle, solution, entries, sel = -1, won = false;
+let currentGivens = 32;
+let hintSet = new Set();       // cells the hint button filled in (styled differently)
 
-function newGame(givens = 32){
-  ({ puz: puzzle, sol: solution } = makePuzzle(givens));
-  entries = puzzle.slice();
-  sel = -1; won = false;
+/* ---------------------------------------------------------------
+   Temp save: every change writes puzzle+solution+entries+difficulty
+   to localStorage, so leaving the page (closing the app, switching
+   to another game and back) resumes the same puzzle instead of
+   handing you a brand new one.
+   --------------------------------------------------------------- */
+function saveState(){
+  try{
+    localStorage.setItem('sudoku-save', JSON.stringify({
+      puzzle, solution, entries, givens: currentGivens, hints: [...hintSet]
+    }));
+  }catch(e){}
+}
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem('sudoku-save');
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+/* draws the board from whatever puzzle/solution/entries currently are —
+   used both for a freshly generated puzzle AND a restored save */
+function renderBoard(){
+  sel = -1;
+  won = entries.every((e, i) => e === solution[i]);
   board.innerHTML = '';
   for(let i = 0; i < 81; i++){
     const d = document.createElement('div');
@@ -133,16 +158,57 @@ function newGame(givens = 32){
     if(c === 2 || c === 5) d.classList.add('b-r');   // thick 3×3 box lines
     if(r === 2 || r === 5) d.classList.add('b-b');
     if(puzzle[i]){ d.textContent = puzzle[i]; d.classList.add('given'); }
+    else if(entries[i]){
+      d.textContent = entries[i];
+      if(hintSet.has(i)) d.classList.add('hint');
+    }
     d.onclick = () => selectCell(i);
     board.appendChild(d);
   }
+  paint();
+}
+
+function newGame(givens = 32){
+  currentGivens = givens;
+  ({ puz: puzzle, sol: solution } = makePuzzle(givens));
+  entries = puzzle.slice();
+  hintSet = new Set();
+  renderBoard();
+  saveState();
 }
 
 function resetGame(){          // "restart" = same puzzle, undo your entries
   entries = puzzle.slice();
-  sel = -1; won = false;
-  for(let i = 0; i < 81; i++) board.children[i].textContent = puzzle[i] || '';
+  hintSet = new Set();
+  renderBoard();
+  saveState();
+}
+
+function giveHint(){
+  if(won) return;
+  // prefer the selected cell if it's still blank/wrong; otherwise pick any blank/wrong cell at random
+  let i = (sel >= 0 && !puzzle[sel] && entries[sel] !== solution[sel]) ? sel : -1;
+  if(i === -1){
+    const empties = [];
+    for(let k = 0; k < 81; k++) if(!puzzle[k] && entries[k] !== solution[k]) empties.push(k);
+    if(empties.length === 0) return;              // nothing left to hint
+    i = empties[Math.floor(Math.random() * empties.length)];
+  }
+  entries[i] = solution[i];
+  hintSet.add(i);
+  sel = i;
+  board.children[i].textContent = solution[i];
+  board.children[i].classList.add('hint');
+  ding();
+  sparkEl(board.children[i], 6);
   paint();
+  saveState();
+  if(entries.every((e, k) => e === solution[k])){
+    won = true;
+    fanfare(); awoo();
+    sparkEl(board, 26);
+    showBanner('solved it! so smart ♥', 2600);
+  }
 }
 
 function selectCell(i){
@@ -172,9 +238,11 @@ function hasConflict(i){
 function inputNum(v){
   if(won || sel < 0 || puzzle[sel]) return;    // can't change printed numbers
   entries[sel] = v;
+  if(hintSet.has(sel)){ hintSet.delete(sel); board.children[sel].classList.remove('hint'); }
   board.children[sel].textContent = v || '';
   paint();
   if(v) tone(620, 0, .06, 'triangle', .05);
+  saveState();
   if(entries.every((e, i) => e === solution[i])){   // solved!
     won = true;
     fanfare(); awoo();
@@ -205,16 +273,32 @@ addEventListener('keydown', e => {
   }
 });
 
-/* difficulty buttons */
+/* difficulty buttons — clicking the mode you're already playing is a
+   no-op, so it can't accidentally wipe out a puzzle you're mid-solving */
 document.querySelectorAll('#diffs .btn').forEach(b => b.onclick = () => {
+  const g = +b.dataset.g;
+  if(g === currentGivens) return;
   document.querySelectorAll('#diffs .btn').forEach(x => x.classList.remove('on'));
   b.classList.add('on');
-  newGame(+b.dataset.g);
+  newGame(g);
 });
+
+document.getElementById('hintBtn').onclick = giveHint;
 
 buildPack();
 setupPause(resetGame);
-newGame(32);
+
+/* resume a saved puzzle if there is one, otherwise start fresh */
+const saved = loadSaved();
+if(saved && Array.isArray(saved.puzzle) && Array.isArray(saved.solution) && Array.isArray(saved.entries)){
+  puzzle = saved.puzzle; solution = saved.solution; entries = saved.entries;
+  currentGivens = saved.givens || 32;
+  hintSet = new Set(saved.hints || []);
+  document.querySelectorAll('#diffs .btn').forEach(b => b.classList.toggle('on', +b.dataset.g === currentGivens));
+  renderBoard();
+} else {
+  newGame(32);
+}
 </script>
 </body>
 </html>
